@@ -1,0 +1,874 @@
+import React, { useState } from 'react';
+import {
+  StyleSheet,
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  Modal,
+  ToastAndroid,
+  Platform,
+  Alert,
+} from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
+import Svg, { Circle, Line, Rect, Path, G, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
+import { colors } from '../styles/theme';
+import { Icon } from '../components/Icon';
+
+interface DashboardScreenProps {
+  onSignOut: () => void;
+  onOpenGeoTracking: () => void;
+  onOpenParentalControl: () => void;
+  onOpenMalwareAnalysis: () => void;
+  onOpenCallerIntelligence: () => void;
+}
+
+export const DashboardScreen: React.FC<DashboardScreenProps> = ({
+  onSignOut,
+  onOpenGeoTracking,
+  onOpenParentalControl,
+  onOpenMalwareAnalysis,
+  onOpenCallerIntelligence,
+}) => {
+  const [showAdPopup, setShowAdPopup] = useState(true);
+  const [activeTab, setActiveTab] = useState('Home');
+
+  const showToast = (message: string) => {
+    if (Platform.OS === 'android') {
+      ToastAndroid.show(message, ToastAndroid.LONG);
+    } else {
+      Alert.alert('Redirecting', message);
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      {/* Background Glow */}
+      <View style={styles.glowContainer}>
+        <View style={styles.purpleGlow} />
+      </View>
+
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* 1. TOP HEADER APP BAR */}
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            {/* Small Logo Container */}
+            <View style={styles.miniLogo}>
+              <Svg width={28} height={28} viewBox="0 0 100 100">
+                <Defs>
+                  <SvgLinearGradient id="miniShieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <Stop offset="0%" stopColor="#8b5cf6" />
+                    <Stop offset="100%" stopColor="#2563eb" />
+                  </SvgLinearGradient>
+                </Defs>
+                <Path
+                  d="M50,10 L85,22 V48 C85,69.5 70,89 50,94 C30,89 15,69.5 15,48 V22 L50,10 Z"
+                  fill="url(#miniShieldGrad)"
+                />
+                <Path
+                  d="M45,60 L35,50 L39,46 L45,52 L61,36 L65,40 Z"
+                  fill="#ffffff"
+                />
+              </Svg>
+            </View>
+            <View style={styles.headerTitleContainer}>
+              <View style={styles.titleBadgeRow}>
+                <Text style={styles.headerTitle}>Aepttas Shield XDR</Text>
+                <View style={styles.miniBadge}>
+                  <Text style={styles.miniBadgeText}>v2.0</Text>
+                </View>
+              </View>
+              <Text style={styles.headerSubtitle}>AI-Powered Mobile Security Suite</Text>
+            </View>
+          </View>
+
+          {/* Notification Bell */}
+          <TouchableOpacity style={styles.bellButton} onPress={onSignOut}>
+            <Icon name="notifications" color="#fff" size={20} />
+            <View style={styles.redDot} />
+          </TouchableOpacity>
+        </View>
+
+        {/* 2. MAIN STATUS CARD */}
+        <LinearGradient
+          colors={['#5b21b6', '#1e3a8a', '#0f172a']}
+          style={styles.statusCard}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <View style={styles.statusCardContent}>
+            {/* Glowing Shield SVG */}
+            <View style={styles.shieldWrapper}>
+              <Svg width={90} height={90} viewBox="0 0 100 100">
+                <Circle cx="50" cy="50" r="45" fill={colors.purpleAccent} opacity={0.15} />
+                <Circle cx="50" cy="50" r="35" fill={colors.cyanAccent} opacity={0.1} />
+                <Path
+                  d="M50,20 L80,30 V50 C80,68 67,82 50,87 C33,82 20,68 20,50 V30 L50,20 Z"
+                  fill="#1e293b"
+                  stroke={colors.cyanAccent}
+                  strokeWidth="3"
+                />
+                <Path
+                  d="M45,63 L32,50 L37,45 L45,53 L63,35 L68,40 Z"
+                  fill={colors.cyanAccent}
+                />
+              </Svg>
+            </View>
+
+            {/* Device Status Details */}
+            <View style={styles.statusDetails}>
+              <Text style={styles.statusLabelText}>YOUR DEVICE IS</Text>
+              <View style={styles.protectedRow}>
+                <Text style={styles.protectedText}>PROTECTED</Text>
+                <View style={styles.checkBadge}>
+                  <Icon name="check" color="#fff" size={10} />
+                </View>
+              </View>
+              <Text style={styles.scoreLabel}>Security Score</Text>
+              <View style={styles.scoreRow}>
+                <Text style={styles.scoreBig}>98</Text>
+                <Text style={styles.scoreSmall}>/100</Text>
+              </View>
+              <View style={styles.scanTimeRow}>
+                <Text style={styles.scanTimeText}>Last scanned: 2 min ago </Text>
+                <Icon name="refresh" color="#d1d5db" size={12} />
+              </View>
+            </View>
+          </View>
+        </LinearGradient>
+
+        {/* 3. STATS ROW */}
+        <View style={styles.statsContainer}>
+          <View style={styles.statItem}>
+            <Icon name="report" color={colors.redDanger} size={20} />
+            <Text style={styles.statValue}>32</Text>
+            <Text style={styles.statLabel}>Threats{'\n'}Blocked</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Icon name="inventory" color={colors.purpleAccent} size={20} />
+            <Text style={styles.statValue}>1.24K</Text>
+            <Text style={styles.statLabel}>APKs{'\n'}Scanned</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Icon name="warning-amber" color={colors.orangeWarning} size={20} />
+            <Text style={styles.statValue}>2</Text>
+            <Text style={styles.statLabel}>Vulnerabilities{'\n'}Found</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Icon name="shield" color={colors.cyanAccent} size={20} />
+            <Text style={styles.statValue}>15.6 GB</Text>
+            <Text style={styles.statLabel}>Data{'\n'}Protected</Text>
+          </View>
+        </View>
+
+        {/* 4. QUICK ACTIONS SECTION HEADER */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <TouchableOpacity>
+            <Text style={styles.editLink}>Edit</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* QUICK ACTIONS GRID */}
+        <View style={styles.gridRow}>
+          <TouchableOpacity style={styles.gridItem}>
+            <View style={[styles.gridIconBg, { backgroundColor: colors.purpleAccent + '1E' }]}>
+              <Icon name="shield" color={colors.purpleAccent} size={20} />
+            </View>
+            <Text style={styles.gridLabel}>Antivirus</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.gridItem} onPress={onOpenMalwareAnalysis}>
+            <View style={[styles.gridIconBg, { backgroundColor: colors.greenSuccess + '1E' }]}>
+              <Icon name="inventory" color={colors.greenSuccess} size={20} />
+            </View>
+            <Text style={styles.gridLabel}>APK Scanner</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.gridItem} onPress={onOpenCallerIntelligence}>
+            <View style={[styles.gridIconBg, { backgroundColor: colors.blueAccent + '1E' }]}>
+              <Icon name="phone" color={colors.blueAccent} size={20} />
+            </View>
+            <Text style={styles.gridLabel}>Caller Intelligence</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.gridItem} onPress={onOpenMalwareAnalysis}>
+            <View style={[styles.gridIconBg, { backgroundColor: colors.orangeWarning + '1E' }]}>
+              <Icon name="error-outline" color={colors.orangeWarning} size={20} />
+            </View>
+            <Text style={styles.gridLabel}>Vulnerability{'\n'}Scanner</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={[styles.gridRow, { marginTop: 12 }]}>
+          <TouchableOpacity style={styles.gridItem}>
+            <View style={[styles.gridIconBg, { backgroundColor: colors.purpleAccent + '1E' }]}>
+              <Icon name="lock" color={colors.purpleAccent} size={20} />
+            </View>
+            <Text style={styles.gridLabel}>DLP Protection</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.gridItem} onPress={onOpenGeoTracking}>
+            <View style={[styles.gridIconBg, { backgroundColor: colors.blueAccent + '1E' }]}>
+              <Icon name="globe" color={colors.blueAccent} size={20} />
+            </View>
+            <Text style={styles.gridLabel}>Geo Tracking</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.gridItem} onPress={onOpenParentalControl}>
+            <View style={[styles.gridIconBg, { backgroundColor: colors.pinkAccent + '1E' }]}>
+              <Icon name="people" color={colors.pinkAccent} size={20} />
+            </View>
+            <Text style={styles.gridLabel}>Parental Control</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.gridItem}>
+            <View style={[styles.gridIconBg, { backgroundColor: colors.cyanAccent + '1E' }]}>
+              <Icon name="vpn-key" color={colors.cyanAccent} size={20} />
+            </View>
+            <Text style={styles.gridLabel}>Secure VPN</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* 5. AI THREAT INTELLIGENCE CARD */}
+        <View style={styles.aiCard}>
+          <View style={styles.aiContent}>
+            <View style={{ flex: 1.3 }}>
+              <Text style={styles.aiTitle}>AI Threat Intelligence</Text>
+              <Text style={styles.aiDate}>Updated: Today 08:45 AM</Text>
+            </View>
+
+            {/* Neural Network SVG Graphic */}
+            <View style={styles.brainWrapper}>
+              <Svg width={60} height={50} viewBox="0 0 60 50">
+                <Circle cx="30" cy="25" r="16" fill={colors.cyanAccent} opacity={0.2} />
+                <Circle cx="30" cy="25" r="6" fill={colors.purpleAccent} opacity={0.8} />
+                {/* Connector Lines */}
+                <Line x1="30" y1="25" x2="10" y2="10" stroke={colors.cyanAccent} strokeWidth="1" opacity={0.6} />
+                <Line x1="30" y1="25" x2="50" y2="35" stroke={colors.cyanAccent} strokeWidth="1" opacity={0.6} />
+                <Line x1="30" y1="25" x2="15" y2="40" stroke={colors.purpleAccent} strokeWidth="1" opacity={0.6} />
+                <Line x1="30" y1="25" x2="48" y2="10" stroke={colors.purpleAccent} strokeWidth="1" opacity={0.6} />
+                {/* Node Circles */}
+                <Circle cx="10" cy="10" r="3" fill={colors.cyanAccent} />
+                <Circle cx="50" cy="35" r="3" fill={colors.cyanAccent} />
+                <Circle cx="15" cy="40" r="3" fill={colors.purpleAccent} />
+                <Circle cx="48" cy="10" r="3" fill={colors.purpleAccent} />
+              </Svg>
+            </View>
+
+            <TouchableOpacity style={styles.aiArrowBtn}>
+              <Icon name="arrow-forward" color="#fff" size={16} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* 6. RECENT ACTIVITY */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Recent Activity</Text>
+          <TouchableOpacity>
+            <Text style={styles.editLink}>View All</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.recentActivityCard}>
+          <View style={styles.activityIconBg}>
+            <Icon name="error" color={colors.redDanger} size={24} />
+          </View>
+          <View style={styles.activityTexts}>
+            <Text style={styles.activityTitle}>Malicious APK Detected</Text>
+            <Text style={styles.activitySub}>com.bad.app.malware</Text>
+          </View>
+          <View style={styles.activityTimeCol}>
+            <Text style={styles.activityTime}>10:30 AM</Text>
+            <Text style={styles.activityStatus}>Quarantined</Text>
+          </View>
+        </View>
+
+        {/* Spacer before footer bar */}
+        <View style={{ height: 100 }} />
+      </ScrollView>
+
+      {/* 7. FLOATING BOTTOM NAVIGATION BAR */}
+      <View style={styles.floatingNavContainer}>
+        <View style={styles.floatingNav}>
+          <TouchableOpacity style={styles.navItem} onPress={() => setActiveTab('Home')}>
+            <Icon name="home" color={activeTab === 'Home' ? colors.purpleAccent : colors.textMuted} size={22} />
+            <Text style={[styles.navText, activeTab === 'Home' && styles.navTextActive]}>Home</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.navItem} onPress={() => setActiveTab('Scan')}>
+            <Icon name="search" color={activeTab === 'Scan' ? colors.purpleAccent : colors.textMuted} size={22} />
+            <Text style={[styles.navText, activeTab === 'Scan' && styles.navTextActive]}>Scan</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.navItem} onPress={() => setActiveTab('XDR Console')}>
+            <Icon name="terminal" color={activeTab === 'XDR Console' ? colors.purpleAccent : colors.textMuted} size={22} />
+            <Text style={[styles.navText, activeTab === 'XDR Console' && styles.navTextActive]}>XDR Console</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.navItem} onPress={() => setActiveTab('Reports')}>
+            <Icon name="reports" color={activeTab === 'Reports' ? colors.purpleAccent : colors.textMuted} size={22} />
+            <Text style={[styles.navText, activeTab === 'Reports' && styles.navTextActive]}>Reports</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.navItem} onPress={() => setActiveTab('More')}>
+            <Icon name="grid" color={activeTab === 'More' ? colors.purpleAccent : colors.textMuted} size={22} />
+            <Text style={[styles.navText, activeTab === 'More' && styles.navTextActive]}>More</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* SPONSORED FLIPKART AD DIALOG POPUP */}
+      <Modal transparent={true} visible={showAdPopup} animationType="fade" onRequestClose={() => setShowAdPopup(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            {/* Close X Button */}
+            <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setShowAdPopup(false)}>
+              <Icon name="close" color="#fff" size={16} />
+            </TouchableOpacity>
+
+            <View style={styles.adHeader}>
+              <Icon name="info" color="#ffd900" size={14} />
+              <Text style={styles.adHeaderTag}>SPONSORED BY FLIPKART</Text>
+            </View>
+
+            {/* Graphic Banner Illustration */}
+            <View style={styles.adBanner}>
+              {/* SVG Shopping Bag and Glowing Circle */}
+              <Svg width="100%" height="100%" style={StyleSheet.absoluteFill}>
+                <Circle cx="120" cy="60" r="60" fill="#2874f0" opacity={0.1} />
+                <Circle cx="120" cy="60" r="40" fill="#ffd900" opacity={0.1} />
+                {/* Bag Handle */}
+                <Path
+                  d="M107 45 A15 15 0 0 1 133 45"
+                  fill="none"
+                  stroke="#ffd900"
+                  strokeWidth="2"
+                />
+                {/* Bag Body */}
+                <Rect x="100" y="45" width="40" height="50" rx="4" ry="4" fill="#2874f0" />
+              </Svg>
+              <View style={styles.adBannerTexts}>
+                <Text style={styles.adBannerTitle}>BIG BILLION DAYS</Text>
+                <Text style={styles.adBannerSub}>UP TO 80% OFF ON ALL CATEGORIES</Text>
+              </View>
+            </View>
+
+            <Text style={styles.adMainTitle}>Flipkart Mega Deals Live!</Text>
+
+            <Text style={styles.adDescription}>
+              Get massive discounts on Smartphones, Laptops, Fashion & Home Decor. Extra 10% instant discount with HDFC, SBI and Axis Credit Cards. Limited hours remaining!
+            </Text>
+
+            {/* CTA Button */}
+            <TouchableOpacity
+              style={styles.adCtaBtn}
+              onPress={() => {
+                showToast('Redirecting to Flipkart Special Deal store...');
+                setShowAdPopup(false);
+              }}
+            >
+              <LinearGradient
+                colors={['#2874f0', '#ffd900']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.adCtaGradient}
+              >
+                <Text style={styles.adCtaBtnText}>Claim Flipkart Deals Now</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => setShowAdPopup(false)} style={styles.adSkipBtn}>
+              <Text style={styles.adSkipBtnText}>Skip and continue to Dashboard</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  glowContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 400,
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  purpleGlow: {
+    width: 450,
+    height: 450,
+    borderRadius: 225,
+    backgroundColor: '#201a54',
+    opacity: 0.35,
+    marginTop: -200,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: 24,
+    paddingBottom: 40,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 16,
+    paddingBottom: 16,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  miniLogo: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.cardBackground,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitleContainer: {
+    marginLeft: 12,
+  },
+  titleBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  miniBadge: {
+    borderWidth: 1,
+    borderColor: colors.purpleAccent + 'CC',
+    borderRadius: 4,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    marginLeft: 6,
+  },
+  miniBadgeText: {
+    color: colors.purpleAccent,
+    fontSize: 9,
+    fontWeight: 'bold',
+  },
+  headerSubtitle: {
+    color: colors.textMuted,
+    fontSize: 11,
+    marginTop: 2,
+  },
+  bellButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: colors.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  redDot: {
+    position: 'absolute',
+    top: 10,
+    right: 12,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.redDanger,
+  },
+  statusCard: {
+    width: '100%',
+    borderRadius: 24,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#38bdf844', // translucent cyan/purple gradient border simulation
+    marginTop: 10,
+    marginBottom: 24,
+  },
+  statusCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  shieldWrapper: {
+    width: 110,
+    height: 110,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  statusDetails: {
+    flex: 1,
+    paddingLeft: 16,
+  },
+  statusLabelText: {
+    color: '#D1D5DB',
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+  },
+  protectedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 2,
+  },
+  protectedText: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  checkBadge: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: colors.greenSuccess,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 6,
+  },
+  scoreLabel: {
+    color: colors.textMuted,
+    fontSize: 12,
+    marginTop: 4,
+  },
+  scoreRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+  },
+  scoreBig: {
+    color: '#fff',
+    fontSize: 32,
+    fontWeight: 'bold',
+  },
+  scoreSmall: {
+    color: colors.textMuted,
+    fontSize: 15,
+    marginBottom: 4,
+    marginLeft: 2,
+  },
+  scanTimeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  scanTimeText: {
+    color: '#D1D5DB',
+    fontSize: 11,
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    width: '100%',
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 16,
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'space-evenly',
+    marginBottom: 28,
+  },
+  statItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  statValue: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: 'bold',
+    marginTop: 8,
+  },
+  statLabel: {
+    color: colors.textMuted,
+    fontSize: 10,
+    textAlign: 'center',
+    lineHeight: 12,
+    marginTop: 2,
+  },
+  statDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: colors.border,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  editLink: {
+    color: '#60A5FA',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  gridRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  gridItem: {
+    flex: 0.23,
+    height: 96,
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 6,
+  },
+  gridIconBg: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  gridLabel: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '500',
+    textAlign: 'center',
+    lineHeight: 12,
+  },
+  aiCard: {
+    width: '100%',
+    backgroundColor: '#080d1a',
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 20,
+    padding: 16,
+    marginTop: 28,
+    marginBottom: 28,
+  },
+  aiContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  aiTitle: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  aiDate: {
+    color: colors.textMuted,
+    fontSize: 12,
+    marginTop: 4,
+  },
+  brainWrapper: {
+    flex: 1,
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  aiArrowBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#1e293b',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  recentActivityCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 16,
+    padding: 16,
+  },
+  activityIconBg: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: colors.redDanger + '26',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  activityTexts: {
+    flex: 1,
+    marginLeft: 14,
+  },
+  activityTitle: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  activitySub: {
+    color: colors.textMuted,
+    fontSize: 12,
+    marginTop: 2,
+  },
+  activityTimeCol: {
+    alignItems: 'flex-end',
+  },
+  activityTime: {
+    color: colors.textMuted,
+    fontSize: 11,
+  },
+  activityStatus: {
+    color: colors.redDanger,
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 4,
+  },
+  floatingNavContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  floatingNav: {
+    flexDirection: 'row',
+    height: 68,
+    borderRadius: 24,
+    backgroundColor: colors.cardBackground + 'F2', // 0.95 opacity
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  navItem: {
+    height: 52,
+    borderRadius: 16,
+    paddingHorizontal: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    flex: 1,
+  },
+  navText: {
+    color: colors.textMuted,
+    fontSize: 9,
+    marginTop: 4,
+  },
+  navTextActive: {
+    color: colors.purpleAccent,
+    fontWeight: 'bold',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  modalContent: {
+    borderRadius: 20,
+    backgroundColor: '#07051f',
+    borderWidth: 1,
+    borderColor: '#ffd900', // simulated gold/blue gradient border
+    padding: 20,
+    alignItems: 'center',
+    position: 'relative',
+  },
+  modalCloseBtn: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  adHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 10,
+  },
+  adHeaderTag: {
+    fontSize: 9,
+    fontWeight: 'bold',
+    color: '#ffd900',
+    letterSpacing: 1,
+    marginLeft: 6,
+  },
+  adBanner: {
+    width: '100%',
+    height: 120,
+    borderRadius: 12,
+    backgroundColor: '#050B24',
+    borderWidth: 0.5,
+    borderColor: '#2874f033',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 14,
+    marginBottom: 16,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  adBannerTexts: {
+    position: 'absolute',
+    bottom: 20,
+    alignItems: 'center',
+  },
+  adBannerTitle: {
+    color: '#ffd900',
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 2,
+  },
+  adBannerSub: {
+    color: '#fff',
+    fontSize: 8,
+    fontWeight: '500',
+  },
+  adMainTitle: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#fff',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  adDescription: {
+    fontSize: 11,
+    color: '#9a8c98',
+    textAlign: 'center',
+    lineHeight: 16,
+    marginBottom: 20,
+  },
+  adCtaBtn: {
+    width: '100%',
+    height: 48,
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginBottom: 12,
+  },
+  adCtaGradient: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  adCtaBtnText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 13,
+  },
+  adSkipBtn: {
+    paddingVertical: 4,
+  },
+  adSkipBtnText: {
+    fontSize: 11,
+    color: '#6b6e85',
+  },
+});
