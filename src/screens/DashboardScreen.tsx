@@ -76,9 +76,6 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
             <View style={styles.headerTitleContainer}>
               <View style={styles.titleBadgeRow}>
                 <Text style={styles.headerTitle}>Aepttas Shield XDR</Text>
-                <View style={styles.miniBadge}>
-                  <Text style={styles.miniBadgeText}>v2.0</Text>
-                </View>
               </View>
               <Text style={styles.headerSubtitle}>AI-Powered Mobile Security Suite</Text>
             </View>
@@ -447,19 +444,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: 'bold',
-  },
-  miniBadge: {
-    borderWidth: 1,
-    borderColor: colors.purpleAccent + 'CC',
-    borderRadius: 4,
-    paddingHorizontal: 4,
-    paddingVertical: 1,
-    marginLeft: 6,
-  },
-  miniBadgeText: {
-    color: colors.purpleAccent,
-    fontSize: 9,
     fontWeight: 'bold',
   },
   headerSubtitle: {
