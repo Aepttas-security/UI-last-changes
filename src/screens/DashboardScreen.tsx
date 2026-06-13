@@ -21,6 +21,7 @@ interface DashboardScreenProps {
   onOpenParentalControl: () => void;
   onOpenMalwareAnalysis: () => void;
   onOpenCallerIntelligence: () => void;
+  onOpenVulnerabilityDetection: () => void;
 }
 
 export const DashboardScreen: React.FC<DashboardScreenProps> = ({
@@ -29,6 +30,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
   onOpenParentalControl,
   onOpenMalwareAnalysis,
   onOpenCallerIntelligence,
+  onOpenVulnerabilityDetection,
 }) => {
   const [showAdPopup, setShowAdPopup] = useState(true);
   const [activeTab, setActiveTab] = useState('Home');
@@ -195,7 +197,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
             <Text style={styles.gridLabel}>Caller Intelligence</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.gridItem} onPress={onOpenMalwareAnalysis}>
+          <TouchableOpacity style={styles.gridItem} onPress={onOpenVulnerabilityDetection}>
             <View style={[styles.gridIconBg, { backgroundColor: colors.orangeWarning + '1E' }]}>
               <Icon name="error-outline" color={colors.orangeWarning} size={20} />
             </View>

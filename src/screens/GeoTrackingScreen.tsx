@@ -42,6 +42,39 @@ const allRequests: GeoRequest[] = [
   { ip: '109.201.154.22', threatLevel: 'Suspicious', country: 'Russia', city: 'Moscow', isp: 'Rostelecom PJSC', latency: '195ms', timeAgo: '6d ago', timeCategory: '7D', xPercent: 0.56, yPercent: 0.26 }
 ];
 
+interface NearbyPlace {
+  name: string;
+  distance: string;
+}
+
+const getNearbyPlaces = (ip: string): NearbyPlace[] => {
+  if (ip.startsWith('185.')) {
+    return [
+      { name: 'Amsterdam AMS-IX Node', distance: '1.2 km' },
+      { name: 'Equinix AM3 Data Center', distance: '3.4 km' },
+      { name: 'Leaseweb Gateway Node B', distance: '5.1 km' }
+    ];
+  } else if (ip.startsWith('104.')) {
+    return [
+      { name: 'San Francisco SF-MIX Exchange', distance: '0.8 km' },
+      { name: 'Digital Realty SF Data Center', distance: '2.1 km' },
+      { name: 'Cloudflare SF Edge Server 12', distance: '4.3 km' }
+    ];
+  } else if (ip.startsWith('43.')) {
+    return [
+      { name: 'Mumbai GPX Data Center', distance: '1.9 km' },
+      { name: 'Nxtra Airtel Exchange Mumbai', distance: '3.0 km' },
+      { name: 'AWS Mumbai Edge Region', distance: '6.2 km' }
+    ];
+  } else {
+    return [
+      { name: 'Carrier Telecom Exchange Node', distance: '2.5 km' },
+      { name: 'Central ISP Gateway Routing', distance: '4.8 km' },
+      { name: 'Local Edge DNS Cache', distance: '7.1 km' }
+    ];
+  }
+};
+
 export const GeoTrackingScreen: React.FC<GeoTrackingScreenProps> = ({ onBack }) => {
   const [selectedFilter, setSelectedFilter] = useState<'All' | '1H' | '24H' | '7D'>('All');
   const [selectedRequest, setSelectedRequest] = useState<GeoRequest | null>(allRequests[1]); // Default to Amsterdam
@@ -386,6 +419,21 @@ export const GeoTrackingScreen: React.FC<GeoTrackingScreenProps> = ({ onBack }) 
               </View>
             </View>
           </View>
+
+          {/* Nearby Network Places List */}
+          <View style={styles.cardDivider} />
+          <Text style={styles.detailsLabel}>NEARBY NETWORK PLACES</Text>
+          <View style={styles.nearbyContainer}>
+            {getNearbyPlaces(selectedRequest.ip).map((place, idx) => (
+              <View key={idx} style={styles.nearbyPlaceRow}>
+                <View style={styles.nearbyPlaceLeft}>
+                  <Icon name="location-on" color={colors.purpleAccent} size={14} />
+                  <Text style={styles.nearbyPlaceName}>{place.name}</Text>
+                </View>
+                <Text style={styles.nearbyPlaceDistance}>{place.distance}</Text>
+              </View>
+            ))}
+          </View>
         </View>
       )}
 
@@ -685,5 +733,28 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '500',
     marginTop: 2,
+  },
+  nearbyContainer: {
+    marginTop: 6,
+  },
+  nearbyPlaceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginVertical: 4,
+  },
+  nearbyPlaceLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  nearbyPlaceName: {
+    color: '#fff',
+    fontSize: 12,
+    marginLeft: 6,
+  },
+  nearbyPlaceDistance: {
+    color: colors.textMuted,
+    fontSize: 11,
+    fontWeight: '500',
   },
 });

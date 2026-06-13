@@ -12,6 +12,7 @@ import { MalwareAnalysisScreen } from './src/screens/MalwareAnalysisScreen';
 import { CallerIntelligenceScreen } from './src/screens/CallerIntelligenceScreen';
 import { ChildLinkScreen } from './src/screens/ChildLinkScreen';
 import { ChildModeScreen } from './src/screens/ChildModeScreen';
+import { VulnerabilityDetectionScreen } from './src/screens/VulnerabilityDetectionScreen';
 
 type ScreenName =
   | 'Login'
@@ -21,7 +22,8 @@ type ScreenName =
   | 'MalwareAnalysis'
   | 'CallerIntelligence'
   | 'ChildLink'
-  | 'ChildMode';
+  | 'ChildMode'
+  | 'VulnerabilityDetection';
 
 function App() {
   const [currentScreen, setCurrentScreen] = useState<ScreenName>('Login');
@@ -43,6 +45,7 @@ function App() {
             onOpenParentalControl={() => setCurrentScreen('ParentalControl')}
             onOpenMalwareAnalysis={() => setCurrentScreen('MalwareAnalysis')}
             onOpenCallerIntelligence={() => setCurrentScreen('CallerIntelligence')}
+            onOpenVulnerabilityDetection={() => setCurrentScreen('VulnerabilityDetection')}
           />
         );
       case 'GeoTracking':
@@ -53,6 +56,8 @@ function App() {
         return <MalwareAnalysisScreen onBack={() => setCurrentScreen('Dashboard')} />;
       case 'CallerIntelligence':
         return <CallerIntelligenceScreen onBack={() => setCurrentScreen('Dashboard')} />;
+      case 'VulnerabilityDetection':
+        return <VulnerabilityDetectionScreen onBack={() => setCurrentScreen('Dashboard')} />;
       case 'ChildLink':
         return (
           <ChildLinkScreen
