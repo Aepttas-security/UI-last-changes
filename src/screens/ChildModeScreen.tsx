@@ -272,6 +272,9 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 24,
     paddingBottom: 40,
+    maxWidth: 680,
+    width: '100%',
+    alignSelf: 'center',
   },
   header: {
     flexDirection: 'row',
@@ -451,6 +454,9 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     padding: 20,
     alignItems: 'center',
+    maxWidth: 480,
+    width: '100%',
+    alignSelf: 'center',
   },
   modalHeader: {
     flexDirection: 'row',

@@ -136,6 +136,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 24,
     marginBottom: 32,
+    maxWidth: 600,
+    width: '100%',
+    alignSelf: 'center',
   },
   backButton: {
     width: 40,
@@ -155,6 +158,9 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: 24,
+    maxWidth: 600,
+    width: '100%',
+    alignSelf: 'center',
   },
   infoCard: {
     width: '100%',

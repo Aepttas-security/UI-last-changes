@@ -172,6 +172,7 @@ export const GeoTrackingScreen: React.FC<GeoTrackingScreenProps> = ({ onBack }) 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={colors.background} />
+      <View style={styles.contentWrapper}>
 
       {/* 1. TOP HEADER APP BAR WITH BACK BUTTON */}
       <View style={styles.header}>
@@ -476,6 +477,7 @@ export const GeoTrackingScreen: React.FC<GeoTrackingScreenProps> = ({ onBack }) 
           );
         }}
       />
+      </View>
     </View>
   );
 };
@@ -484,6 +486,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  contentWrapper: {
+    flex: 1,
+    width: '100%',
+    maxWidth: 720,
+    alignSelf: 'center',
   },
   header: {
     flexDirection: 'row',
@@ -544,8 +552,9 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   mapContainer: {
+    width: 320,
     height: 220,
-    marginHorizontal: 24,
+    alignSelf: 'center',
     marginTop: 12,
     marginBottom: 12,
     borderRadius: 20,

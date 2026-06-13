@@ -162,6 +162,7 @@ export const CallerIntelligenceScreen: React.FC<CallerIntelligenceScreenProps> =
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={colors.background} />
+      <View style={styles.contentWrapper}>
 
       {/* Header Bar */}
       <View style={styles.header}>
@@ -860,6 +861,7 @@ export const CallerIntelligenceScreen: React.FC<CallerIntelligenceScreenProps> =
           </View>
         </View>
       </Modal>
+      </View>
     </View>
   );
 };
@@ -868,6 +870,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  contentWrapper: {
+    flex: 1,
+    width: '100%',
+    maxWidth: 720,
+    alignSelf: 'center',
   },
   header: {
     flexDirection: 'row',
@@ -1362,6 +1370,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#0F0A2B',
     borderWidth: 1,
     padding: 20,
+    maxWidth: 520,
+    width: '100%',
+    alignSelf: 'center',
   },
   popupHeader: {
     alignItems: 'center',

@@ -412,6 +412,9 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: 24,
     paddingBottom: 40,
+    maxWidth: 720,
+    width: '100%',
+    alignSelf: 'center',
   },
   header: {
     flexDirection: 'row',
@@ -720,6 +723,9 @@ const styles = StyleSheet.create({
     right: 0,
     paddingHorizontal: 16,
     paddingVertical: 12,
+    maxWidth: 720,
+    width: '100%',
+    alignSelf: 'center',
   },
   floatingNav: {
     flexDirection: 'row',
@@ -763,6 +769,9 @@ const styles = StyleSheet.create({
     padding: 20,
     alignItems: 'center',
     position: 'relative',
+    maxWidth: 520,
+    width: '100%',
+    alignSelf: 'center',
   },
   modalCloseBtn: {
     position: 'absolute',

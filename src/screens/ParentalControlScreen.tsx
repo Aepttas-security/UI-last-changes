@@ -133,6 +133,7 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={colors.background} />
+      <View style={styles.contentWrapper}>
 
       {/* 1. TOP HEADER APP BAR WITH BACK BUTTON */}
       <View style={styles.header}>
@@ -590,6 +591,7 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
           </View>
         )}
       </ScrollView>
+      </View>
     </View>
   );
 };
@@ -598,6 +600,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  contentWrapper: {
+    flex: 1,
+    width: '100%',
+    maxWidth: 720,
+    alignSelf: 'center',
   },
   header: {
     flexDirection: 'row',
