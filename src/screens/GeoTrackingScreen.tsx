@@ -24,6 +24,8 @@ interface GeoRequest {
   timeCategory: '1H' | '24H' | '7D';
   xPercent: number; // 0.0 to 1.0 (X coordinate on map)
   yPercent: number; // 0.0 to 1.0 (Y coordinate on map)
+  latitude: string;
+  longitude: string;
 }
 
 interface GeoTrackingScreenProps {
@@ -31,15 +33,15 @@ interface GeoTrackingScreenProps {
 }
 
 const allRequests: GeoRequest[] = [
-  { ip: '104.244.42.1', threatLevel: 'Safe', country: 'United States', city: 'San Francisco', isp: 'Twitter Inc.', latency: '35ms', timeAgo: '5m ago', timeCategory: '1H', xPercent: 0.20, yPercent: 0.35 },
-  { ip: '185.190.140.12', threatLevel: 'High Risk', country: 'Netherlands', city: 'Amsterdam', isp: 'Creanova Hosting', latency: '180ms', timeAgo: '12m ago', timeCategory: '1H', xPercent: 0.48, yPercent: 0.28 },
-  { ip: '13.107.4.50', threatLevel: 'Safe', country: 'Japan', city: 'Tokyo', isp: 'Microsoft Corp', latency: '85ms', timeAgo: '42m ago', timeCategory: '1H', xPercent: 0.82, yPercent: 0.38 },
-  { ip: '43.205.12.89', threatLevel: 'Suspicious', country: 'India', city: 'Mumbai', isp: 'Amazon Data Services', latency: '120ms', timeAgo: '3h ago', timeCategory: '24H', xPercent: 0.70, yPercent: 0.52 },
-  { ip: '185.220.101.5', threatLevel: 'High Risk', country: 'Germany', city: 'Frankfurt', isp: 'Tor Exit Node', latency: '210ms', timeAgo: '6h ago', timeCategory: '24H', xPercent: 0.50, yPercent: 0.32 },
-  { ip: '210.140.10.3', threatLevel: 'Safe', country: 'Japan', city: 'Osaka', isp: 'NTT Communications', latency: '98ms', timeAgo: '18h ago', timeCategory: '24H', xPercent: 0.84, yPercent: 0.42 },
-  { ip: '103.21.244.0', threatLevel: 'Safe', country: 'Singapore', city: 'Singapore', isp: 'Cloudflare Inc.', latency: '62ms', timeAgo: '2d ago', timeCategory: '7D', xPercent: 0.78, yPercent: 0.58 },
-  { ip: '91.198.174.192', threatLevel: 'Safe', country: 'France', city: 'Paris', isp: 'Wikimedia Foundation', latency: '110ms', timeAgo: '4d ago', timeCategory: '7D', xPercent: 0.46, yPercent: 0.33 },
-  { ip: '109.201.154.22', threatLevel: 'Suspicious', country: 'Russia', city: 'Moscow', isp: 'Rostelecom PJSC', latency: '195ms', timeAgo: '6d ago', timeCategory: '7D', xPercent: 0.56, yPercent: 0.26 }
+  { ip: '104.244.42.1', threatLevel: 'Safe', country: 'United States', city: 'San Francisco', isp: 'Twitter Inc.', latency: '35ms', timeAgo: '5m ago', timeCategory: '1H', xPercent: 0.20, yPercent: 0.35, latitude: '37.7749° N', longitude: '122.4194° W' },
+  { ip: '185.190.140.12', threatLevel: 'High Risk', country: 'Netherlands', city: 'Amsterdam', isp: 'Creanova Hosting', latency: '180ms', timeAgo: '12m ago', timeCategory: '1H', xPercent: 0.48, yPercent: 0.28, latitude: '52.3676° N', longitude: '4.9041° E' },
+  { ip: '13.107.4.50', threatLevel: 'Safe', country: 'Japan', city: 'Tokyo', isp: 'Microsoft Corp', latency: '85ms', timeAgo: '42m ago', timeCategory: '1H', xPercent: 0.82, yPercent: 0.38, latitude: '35.6762° N', longitude: '139.6503° E' },
+  { ip: '43.205.12.89', threatLevel: 'Suspicious', country: 'India', city: 'Mumbai', isp: 'Amazon Data Services', latency: '120ms', timeAgo: '3h ago', timeCategory: '24H', xPercent: 0.70, yPercent: 0.52, latitude: '19.0760° N', longitude: '72.8777° E' },
+  { ip: '185.220.101.5', threatLevel: 'High Risk', country: 'Germany', city: 'Frankfurt', isp: 'Tor Exit Node', latency: '210ms', timeAgo: '6h ago', timeCategory: '24H', xPercent: 0.50, yPercent: 0.32, latitude: '50.1109° N', longitude: '8.6821° E' },
+  { ip: '210.140.10.3', threatLevel: 'Safe', country: 'Japan', city: 'Osaka', isp: 'NTT Communications', latency: '98ms', timeAgo: '18h ago', timeCategory: '24H', xPercent: 0.84, yPercent: 0.42, latitude: '34.6937° N', longitude: '135.5023° E' },
+  { ip: '103.21.244.0', threatLevel: 'Safe', country: 'Singapore', city: 'Singapore', isp: 'Cloudflare Inc.', latency: '62ms', timeAgo: '2d ago', timeCategory: '7D', xPercent: 0.78, yPercent: 0.58, latitude: '1.3521° N', longitude: '103.8198° E' },
+  { ip: '91.198.174.192', threatLevel: 'Safe', country: 'France', city: 'Paris', isp: 'Wikimedia Foundation', latency: '110ms', timeAgo: '4d ago', timeCategory: '7D', xPercent: 0.46, yPercent: 0.33, latitude: '48.8566° N', longitude: '2.3522° E' },
+  { ip: '109.201.154.22', threatLevel: 'Suspicious', country: 'Russia', city: 'Moscow', isp: 'Rostelecom PJSC', latency: '195ms', timeAgo: '6d ago', timeCategory: '7D', xPercent: 0.56, yPercent: 0.26, latitude: '55.7558° N', longitude: '37.6173° E' }
 ];
 
 interface NearbyPlace {
@@ -417,6 +419,23 @@ export const GeoTrackingScreen: React.FC<GeoTrackingScreenProps> = ({ onBack }) 
               <View style={styles.timeRow}>
                 <Icon name="clock" color={colors.textMuted} size={13} />
                 <Text style={styles.detailsValue}>{selectedRequest.timeAgo}</Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={[styles.detailsGrid, { marginTop: 12 }]}>
+            <View style={styles.gridColumn}>
+              <Text style={styles.detailsLabel}>LATITUDE</Text>
+              <View style={styles.locationRow}>
+                <Icon name="location-on" color={colors.purpleAccent} size={13} />
+                <Text style={styles.detailsValue}>{selectedRequest.latitude}</Text>
+              </View>
+            </View>
+            <View style={styles.gridColumn}>
+              <Text style={styles.detailsLabel}>LONGITUDE</Text>
+              <View style={styles.locationRow}>
+                <Icon name="location-on" color={colors.purpleAccent} size={13} />
+                <Text style={styles.detailsValue}>{selectedRequest.longitude}</Text>
               </View>
             </View>
           </View>
