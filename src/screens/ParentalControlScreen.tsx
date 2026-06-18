@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -94,6 +94,112 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
   // SOS state
   const [sosActive, setSosActive] = useState(false);
   const [sosTriggeredBy, setSosTriggeredBy] = useState('');
+
+  // Pairing Code & QR Code state
+  const [pairingCode, setPairingCode] = useState('');
+
+  const refreshPairingCode = () => {
+    const digits = '0123456789';
+    let code = '';
+    for (let i = 0; i < 6; i++) {
+      if (i === 3) code += '-';
+      code += digits[Math.floor(Math.random() * 10)];
+    }
+    setPairingCode(code);
+  };
+
+  // Generate pairing code on mount (e.g. login/entry into Parental Control screen)
+  useEffect(() => {
+    refreshPairingCode();
+  }, []);
+
+  // Also refresh when activeTab becomes 'Link'
+  useEffect(() => {
+    if (activeTab === 'Link') {
+      refreshPairingCode();
+    }
+  }, [activeTab]);
+
+  const renderQRCode = (code: string, size = 180) => {
+    const matrixSize = 21; // 21x21 grid for QR Version 1
+    const cellSize = size / matrixSize;
+    const matrix = Array(matrixSize).fill(null).map(() => Array(matrixSize).fill(false));
+
+    // Draw finder patterns helper
+    const drawFinderPattern = (row: number, col: number) => {
+      for (let r = 0; r < 7; r++) {
+        for (let c = 0; c < 7; c++) {
+          const isBorder = r === 0 || r === 6 || c === 0 || c === 6;
+          const isCenter = r >= 2 && r <= 4 && c >= 2 && c <= 4;
+          matrix[row + r][col + c] = isBorder || isCenter;
+        }
+      }
+    };
+
+    // Draw the three standard finder patterns
+    drawFinderPattern(0, 0); // Top-left
+    drawFinderPattern(0, 14); // Top-right
+    drawFinderPattern(14, 0); // Bottom-left
+
+    // Seed generation based on pairing code (e.g., "942-817")
+    let seed = 0;
+    for (let i = 0; i < code.length; i++) {
+      seed = (seed * 31 + code.charCodeAt(i)) & 0xffffffff;
+    }
+
+    const pseudoRandom = () => {
+      seed = (seed * 1664525 + 1013904223) & 0xffffffff;
+      return (seed >>> 16) / 65535;
+    };
+
+    // Fill the grid based on the deterministic seed
+    for (let r = 0; r < matrixSize; r++) {
+      for (let c = 0; c < matrixSize; c++) {
+        // Skip finder patterns
+        const isTopLeft = r < 8 && c < 8;
+        const isTopRight = r < 8 && c >= 13;
+        const isBottomLeft = r >= 13 && c < 8;
+
+        if (!isTopLeft && !isTopRight && !isBottomLeft) {
+          matrix[r][c] = pseudoRandom() > 0.45;
+        }
+      }
+    }
+
+    // Add timing pattern lines (alternating dark/light rows/cols at line index 6)
+    for (let i = 8; i < 13; i++) {
+      matrix[6][i] = i % 2 === 0;
+      matrix[i][6] = i % 2 === 0;
+    }
+
+    // Accumulate rects
+    const rects: React.ReactNode[] = [];
+    for (let r = 0; r < matrixSize; r++) {
+      for (let c = 0; c < matrixSize; c++) {
+        if (matrix[r][c]) {
+          rects.push(
+            <Rect
+              key={`${r}-${c}`}
+              x={c * cellSize}
+              y={r * cellSize}
+              width={cellSize + 0.2}
+              height={cellSize + 0.2}
+              fill={colors.cyanAccent}
+            />
+          );
+        }
+      }
+    }
+
+    return (
+      <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <Rect width={size} height={size} fill={colors.cardBackgroundLight} rx={12} />
+        <G translate="10, 10" scale="0.88">
+          {rects}
+        </G>
+      </Svg>
+    );
+  };
 
   const currentLimitMinutes = selectedProfileId === '1' ? alexLimitMinutes : emmaLimitMinutes;
   const setLimitMinutes = selectedProfileId === '1' ? setAlexLimitMinutes : setEmmaLimitMinutes;
@@ -583,11 +689,35 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
 
         {activeTab === 'Link' && (
           <View style={styles.linkingView}>
-            <Icon name="vpn-key" color={colors.cyanAccent} size={48} />
-            <Text style={styles.linkingCode}>942-817</Text>
-            <Text style={styles.linkingInstructions}>
-              Enter this 6-digit pairing code on the new child device to link it under your parental account.
-            </Text>
+            <View style={styles.qrCard}>
+              <Text style={styles.qrCardTitle}>Link Child Device</Text>
+              
+              <View style={styles.qrCodeWrapper}>
+                {renderQRCode(pairingCode)}
+                <View style={styles.scanLine} />
+              </View>
+
+              <View style={styles.codeContainer}>
+                <Text style={styles.linkingCodeText}>{pairingCode || '000-000'}</Text>
+                <TouchableOpacity 
+                  style={styles.refreshButton}
+                  onPress={refreshPairingCode}
+                  activeOpacity={0.7}
+                >
+                  <Icon name="refresh" color={colors.cyanAccent} size={16} />
+                  <Text style={styles.refreshBtnText}>Refresh</Text>
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.linkingInstructions}>
+                Scan the QR code or enter the 6-digit pairing code on the child device to establish a secure connection.
+              </Text>
+
+              <View style={styles.statusBadge}>
+                <View style={styles.pulseDot} />
+                <Text style={styles.linkStatusText}>Waiting for connection...</Text>
+              </View>
+            </View>
           </View>
         )}
       </ScrollView>
@@ -1145,21 +1275,115 @@ const styles = StyleSheet.create({
   },
   linkingView: {
     alignItems: 'center',
-    marginTop: 80,
+    marginTop: 40,
     width: '100%',
-  },
-  linkingCode: {
-    fontSize: 32,
-    fontWeight: '900',
-    color: colors.cyanAccent,
-    letterSpacing: 2,
-    marginVertical: 16,
+    paddingBottom: 40,
   },
   linkingInstructions: {
     color: '#6B6E85',
-    fontSize: 12,
+    fontSize: 11,
     textAlign: 'center',
     lineHeight: 16,
-    paddingHorizontal: 40,
+    paddingHorizontal: 16,
+    marginTop: 8,
+  },
+  qrCard: {
+    width: '90%',
+    maxWidth: 360,
+    backgroundColor: colors.cardBackground,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: colors.cyanAccent,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  qrCardTitle: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    letterSpacing: 0.5,
+  },
+  qrCodeWrapper: {
+    padding: 16,
+    backgroundColor: colors.cardBackgroundLight,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    position: 'relative',
+    overflow: 'hidden',
+    marginBottom: 20,
+  },
+  scanLine: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: 2,
+    backgroundColor: colors.cyanAccent,
+    opacity: 0.4,
+    top: '50%',
+  },
+  codeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.cardBackgroundLight,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    marginBottom: 12,
+    width: '100%',
+    justifyContent: 'space-between',
+  },
+  linkingCodeText: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: colors.cyanAccent,
+    letterSpacing: 2,
+  },
+  refreshButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(6, 182, 212, 0.1)',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(6, 182, 212, 0.2)',
+  },
+  refreshBtnText: {
+    color: colors.cyanAccent,
+    fontSize: 11,
+    fontWeight: 'bold',
+    marginLeft: 6,
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(245, 158, 11, 0.08)',
+    borderRadius: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.2)',
+  },
+  pulseDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.orangeWarning,
+    marginRight: 8,
+  },
+  linkStatusText: {
+    color: colors.orangeWarning,
+    fontSize: 11,
+    fontWeight: '600',
   },
 });
