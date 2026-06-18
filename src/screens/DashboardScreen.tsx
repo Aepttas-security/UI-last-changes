@@ -32,7 +32,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
   onOpenCallerIntelligence,
   onOpenVulnerabilityDetection,
 }) => {
-  const [showAdPopup, setShowAdPopup] = useState(true);
+  const [showSubscriptionPopup, setShowSubscriptionPopup] = useState(true);
   const [activeTab, setActiveTab] = useState('Home');
 
   const showToast = (message: string) => {
@@ -317,67 +317,69 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
       </View>
 
       {/* SPONSORED FLIPKART AD DIALOG POPUP */}
-      <Modal transparent={true} visible={showAdPopup} animationType="fade" onRequestClose={() => setShowAdPopup(false)}>
+      {/* SUBSCRIPTION UPGRADE POPUP */}
+      <Modal transparent={true} visible={showSubscriptionPopup} animationType="fade" onRequestClose={() => setShowSubscriptionPopup(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             {/* Close X Button */}
-            <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setShowAdPopup(false)}>
+            <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setShowSubscriptionPopup(false)}>
               <Icon name="close" color="#fff" size={16} />
             </TouchableOpacity>
 
-            <View style={styles.adHeader}>
-              <Icon name="info" color="#ffd900" size={14} />
-              <Text style={styles.adHeaderTag}>SPONSORED BY FLIPKART</Text>
+            <View style={styles.subHeader}>
+              <Icon name="verified" color={colors.purpleAccent} size={20} />
+              <Text style={styles.subHeaderTag}>AEPTTAS SHIELD SUBSCRIPTION</Text>
             </View>
 
-            {/* Graphic Banner Illustration */}
-            <View style={styles.adBanner}>
-              {/* SVG Shopping Bag and Glowing Circle */}
-              <Svg width="100%" height="100%" style={StyleSheet.absoluteFill}>
-                <Circle cx="120" cy="60" r="60" fill="#2874f0" opacity={0.1} />
-                <Circle cx="120" cy="60" r="40" fill="#ffd900" opacity={0.1} />
-                {/* Bag Handle */}
-                <Path
-                  d="M107 45 A15 15 0 0 1 133 45"
-                  fill="none"
-                  stroke="#ffd900"
-                  strokeWidth="2"
-                />
-                {/* Bag Body */}
-                <Rect x="100" y="45" width="40" height="50" rx="4" ry="4" fill="#2874f0" />
-              </Svg>
-              <View style={styles.adBannerTexts}>
-                <Text style={styles.adBannerTitle}>BIG BILLION DAYS</Text>
-                <Text style={styles.adBannerSub}>UP TO 80% OFF ON ALL CATEGORIES</Text>
-              </View>
-            </View>
-
-            <Text style={styles.adMainTitle}>Flipkart Mega Deals Live!</Text>
-
-            <Text style={styles.adDescription}>
-              Get massive discounts on Smartphones, Laptops, Fashion & Home Decor. Extra 10% instant discount with HDFC, SBI and Axis Credit Cards. Limited hours remaining!
+            <Text style={styles.subMainTitle}>Upgrade to Premium Security</Text>
+            <Text style={styles.subDescription}>
+              Unlock full AI telemetry defense and safeguard your mobile workspace.
             </Text>
 
-            {/* CTA Button */}
-            <TouchableOpacity
-              style={styles.adCtaBtn}
-              onPress={() => {
-                showToast('Redirecting to Flipkart Special Deal store...');
-                setShowAdPopup(false);
-              }}
-            >
-              <LinearGradient
-                colors={['#2874f0', '#ffd900']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.adCtaGradient}
+            {/* Plan Cards */}
+            <View style={styles.plansContainer}>
+              {/* Premium Plan */}
+              <TouchableOpacity
+                style={styles.planCard}
+                onPress={() => {
+                  showToast('Thank you for subscribing to Premium Shield!');
+                  setShowSubscriptionPopup(false);
+                }}
               >
-                <Text style={styles.adCtaBtnText}>Claim Flipkart Deals Now</Text>
-              </LinearGradient>
-            </TouchableOpacity>
+                <View style={styles.planHeaderRow}>
+                  <Text style={styles.planName}>Premium Shield</Text>
+                  <Text style={styles.planPrice}>₹299/mo</Text>
+                </View>
+                <Text style={styles.planFeatures}>
+                  • Core APK Sandboxing{'\n'}• 2 Linked Child Devices{'\n'}• Basic Geo-tracking History
+                </Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity onPress={() => setShowAdPopup(false)} style={styles.adSkipBtn}>
-              <Text style={styles.adSkipBtnText}>Skip and continue to Dashboard</Text>
+              {/* Elite Plan */}
+              <TouchableOpacity
+                style={[styles.planCard, styles.planCardElite]}
+                onPress={() => {
+                  showToast('Welcome to Elite XDR Protection!');
+                  setShowSubscriptionPopup(false);
+                }}
+              >
+                <View style={styles.eliteBadgeRow}>
+                  <View style={styles.eliteBadge}>
+                    <Text style={styles.eliteBadgeText}>MOST POPULAR</Text>
+                  </View>
+                </View>
+                <View style={styles.planHeaderRow}>
+                  <Text style={[styles.planName, { color: colors.cyanAccent }]}>Elite XDR Pro</Text>
+                  <Text style={[styles.planPrice, { color: colors.cyanAccent }]}>₹599/mo</Text>
+                </View>
+                <Text style={[styles.planFeatures, { color: '#e2e8f0' }]}>
+                  • Infinite Sandbox Telemetry{'\n'}• Unlimited Child Device Links{'\n'}• Secure VIP VPN Access{'\n'}• Live 24/7 Threat Intelligence
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity onPress={() => setShowSubscriptionPopup(false)} style={styles.subSkipBtn}>
+              <Text style={styles.subSkipBtnText}>Continue with Limited Free Plan</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -785,85 +787,95 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     zIndex: 10,
   },
-  adHeader: {
+  subHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 10,
+    marginBottom: 6,
   },
-  adHeaderTag: {
-    fontSize: 9,
+  subHeaderTag: {
+    fontSize: 10,
     fontWeight: 'bold',
-    color: '#ffd900',
+    color: colors.purpleAccent,
     letterSpacing: 1,
     marginLeft: 6,
   },
-  adBanner: {
-    width: '100%',
-    height: 120,
-    borderRadius: 12,
-    backgroundColor: '#050B24',
-    borderWidth: 0.5,
-    borderColor: '#2874f033',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 14,
-    marginBottom: 16,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  adBannerTexts: {
-    position: 'absolute',
-    bottom: 20,
-    alignItems: 'center',
-  },
-  adBannerTitle: {
-    color: '#ffd900',
-    fontSize: 12,
-    fontWeight: '900',
-    letterSpacing: 2,
-  },
-  adBannerSub: {
-    color: '#fff',
-    fontSize: 8,
-    fontWeight: '500',
-  },
-  adMainTitle: {
-    fontSize: 16,
+  subMainTitle: {
+    fontSize: 18,
     fontWeight: '900',
     color: '#fff',
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
   },
-  adDescription: {
+  subDescription: {
     fontSize: 11,
-    color: '#9a8c98',
+    color: '#9ca3af',
     textAlign: 'center',
-    lineHeight: 16,
+    lineHeight: 15,
     marginBottom: 20,
+    paddingHorizontal: 12,
   },
-  adCtaBtn: {
+  plansContainer: {
     width: '100%',
-    height: 48,
+    marginBottom: 16,
+  },
+  planCard: {
+    backgroundColor: '#0a0d1b',
+    borderWidth: 1,
+    borderColor: colors.border,
     borderRadius: 12,
-    overflow: 'hidden',
-    marginBottom: 12,
+    padding: 12,
+    marginBottom: 10,
+    width: '100%',
   },
-  adCtaGradient: {
-    flex: 1,
-    justifyContent: 'center',
+  planCardElite: {
+    borderColor: colors.cyanAccent + '88',
+    backgroundColor: '#0a1626',
+    borderWidth: 1.5,
+  },
+  eliteBadgeRow: {
+    alignItems: 'flex-start',
+    marginBottom: 4,
+  },
+  eliteBadge: {
+    backgroundColor: colors.cyanAccent,
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+  },
+  eliteBadgeText: {
+    color: '#000',
+    fontSize: 8,
+    fontWeight: '900',
+  },
+  planHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 6,
   },
-  adCtaBtnText: {
-    color: '#fff',
+  planName: {
+    fontSize: 14,
     fontWeight: 'bold',
-    fontSize: 13,
+    color: '#fff',
   },
-  adSkipBtn: {
-    paddingVertical: 4,
+  planPrice: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: colors.purpleAccent,
   },
-  adSkipBtnText: {
+  planFeatures: {
+    fontSize: 10,
+    color: colors.textMuted,
+    lineHeight: 14,
+  },
+  subSkipBtn: {
+    paddingVertical: 6,
+  },
+  subSkipBtnText: {
     fontSize: 11,
     color: '#6b6e85',
+    fontWeight: '600',
   },
 });

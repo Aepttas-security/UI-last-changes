@@ -14,7 +14,8 @@ import {
   Alert,
   StatusBar,
 } from 'react-native';
-import Svg, { Circle, Path, G } from 'react-native-svg';
+import LinearGradient from 'react-native-linear-gradient';
+import Svg, { Circle, Path, G, Rect } from 'react-native-svg';
 import { colors } from '../styles/theme';
 import { Icon } from '../components/Icon';
 
@@ -99,6 +100,7 @@ export const CallerIntelligenceScreen: React.FC<CallerIntelligenceScreenProps> =
   const [showHighRiskAlert, setShowHighRiskAlert] = useState(false);
   const [showBlockConfirmation, setShowBlockConfirmation] = useState(false);
   const [showReportPopup, setShowReportPopup] = useState(false);
+  const [showAdPopup, setShowAdPopup] = useState(true);
 
   // Temp reporting variables
   const [reportType, setReportType] = useState('Robocall / Telemarketing');
@@ -861,6 +863,72 @@ export const CallerIntelligenceScreen: React.FC<CallerIntelligenceScreenProps> =
           </View>
         </View>
       </Modal>
+      {/* SPONSORED FLIPKART AD DIALOG POPUP */}
+      <Modal transparent={true} visible={showAdPopup} animationType="fade" onRequestClose={() => setShowAdPopup(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { borderColor: '#ffd900', borderWidth: 1 }]}>
+            {/* Close X Button */}
+            <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setShowAdPopup(false)}>
+              <Icon name="close" color="#fff" size={16} />
+            </TouchableOpacity>
+
+            <View style={styles.adHeader}>
+              <Icon name="info" color="#ffd900" size={14} />
+              <Text style={styles.adHeaderTag}>SPONSORED BY FLIPKART</Text>
+            </View>
+
+            {/* Graphic Banner Illustration */}
+            <View style={styles.adBanner}>
+              {/* SVG Shopping Bag and Glowing Circle */}
+              <Svg width="100%" height="100%" style={StyleSheet.absoluteFill}>
+                <Circle cx="120" cy="60" r="60" fill="#2874f0" opacity={0.1} />
+                <Circle cx="120" cy="60" r="40" fill="#ffd900" opacity={0.1} />
+                {/* Bag Handle */}
+                <Path
+                  d="M107 45 A15 15 0 0 1 133 45"
+                  fill="none"
+                  stroke="#ffd900"
+                  strokeWidth="2"
+                />
+                {/* Bag Body */}
+                <Rect x="100" y="45" width="40" height="50" rx="4" ry="4" fill="#2874f0" />
+              </Svg>
+              <View style={styles.adBannerTexts}>
+                <Text style={styles.adBannerTitle}>BIG BILLION DAYS</Text>
+                <Text style={styles.adBannerSub}>UP TO 80% OFF ON ALL CATEGORIES</Text>
+              </View>
+            </View>
+
+            <Text style={styles.adMainTitle}>Flipkart Mega Deals Live!</Text>
+
+            <Text style={styles.adDescription}>
+              Get massive discounts on Smartphones, Laptops, Fashion & Home Decor. Extra 10% instant discount with HDFC, SBI and Axis Credit Cards. Limited hours remaining!
+            </Text>
+
+            {/* CTA Button */}
+            <TouchableOpacity
+              style={styles.adCtaBtn}
+              onPress={() => {
+                showToast('Redirecting to Flipkart Special Deal store...');
+                setShowAdPopup(false);
+              }}
+            >
+              <LinearGradient
+                colors={['#2874f0', '#ffd900']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.adCtaGradient}
+              >
+                <Text style={styles.adCtaBtnText}>Claim Flipkart Deals Now</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => setShowAdPopup(false)} style={styles.adSkipBtn}>
+              <Text style={styles.adSkipBtnText}>Skip and continue to Caller Management</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
       </View>
     </View>
   );
@@ -1497,5 +1565,98 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 14,
+  },
+  modalCloseBtn: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  adHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 10,
+  },
+  adHeaderTag: {
+    fontSize: 9,
+    fontWeight: 'bold',
+    color: '#ffd900',
+    letterSpacing: 1,
+    marginLeft: 6,
+  },
+  adBanner: {
+    width: '100%',
+    height: 120,
+    borderRadius: 12,
+    backgroundColor: '#050B24',
+    borderWidth: 0.5,
+    borderColor: '#2874f033',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 14,
+    marginBottom: 16,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  adBannerTexts: {
+    position: 'absolute',
+    bottom: 20,
+    alignItems: 'center',
+  },
+  adBannerTitle: {
+    color: '#ffd900',
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 2,
+  },
+  adBannerSub: {
+    color: '#fff',
+    fontSize: 8,
+    fontWeight: '500',
+  },
+  adMainTitle: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#fff',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  adDescription: {
+    fontSize: 11,
+    color: '#9a8c98',
+    textAlign: 'center',
+    lineHeight: 16,
+    marginBottom: 20,
+  },
+  adCtaBtn: {
+    width: '100%',
+    height: 48,
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginBottom: 12,
+  },
+  adCtaGradient: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  adCtaBtnText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 13,
+  },
+  adSkipBtn: {
+    paddingVertical: 4,
+  },
+  adSkipBtnText: {
+    fontSize: 11,
+    color: '#6b6e85',
   },
 });
