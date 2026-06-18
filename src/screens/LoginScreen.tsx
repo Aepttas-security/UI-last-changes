@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -7,6 +7,9 @@ import {
   TouchableOpacity,
   ScrollView,
   StatusBar,
+  Platform,
+  ToastAndroid,
+  Alert,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Svg, { Path, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
@@ -25,6 +28,59 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordVisible, setPasswordVisible] = useState(false);
+  const [loginMode, setLoginMode] = useState<'email' | 'phone'>('email');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
+  const [otpTimer, setOtpTimer] = useState(30);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  useEffect(() => {
+    let interval: any;
+    if (otpSent && otpTimer > 0) {
+      interval = setInterval(() => {
+        setOtpTimer(prev => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [otpSent, otpTimer]);
+
+  const handleEmailSignIn = () => {
+    if (!email.trim()) {
+      setErrorMessage('Please enter your email address');
+      return;
+    }
+    if (!password.trim()) {
+      setErrorMessage('Please enter your password');
+      return;
+    }
+    setErrorMessage('');
+    onSignInSuccess();
+  };
+
+  const handleSendOtp = () => {
+    if (!phoneNumber.trim() || phoneNumber.length !== 10) {
+      setErrorMessage('Please enter a valid 10-digit phone number');
+      return;
+    }
+    setErrorMessage('');
+    setOtpSent(true);
+    setOtpTimer(30);
+    if (Platform.OS === 'android') {
+      ToastAndroid.show('OTP sent successfully to +91 ' + phoneNumber, ToastAndroid.SHORT);
+    } else {
+      Alert.alert('Notice', 'OTP sent successfully to +91 ' + phoneNumber);
+    }
+  };
+
+  const handleVerifyOtp = () => {
+    if (!otpCode.trim() || otpCode.length !== 6) {
+      setErrorMessage('Please enter the 6-digit OTP');
+      return;
+    }
+    setErrorMessage('');
+    onSignInSuccess();
+  };
 
   return (
     <View style={styles.container}>
@@ -82,61 +138,169 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
           <Text style={styles.welcomeSubtitle}>Sign in to continue protecting your device</Text>
         </View>
 
-        {/* Inputs */}
-        <View style={styles.inputContainer}>
-          <View style={styles.inputWrapper}>
-            <Icon name="email" color={colors.textMuted} size={20} />
-            <TextInput
-              style={styles.input}
-              placeholder="Email or Phone Number"
-              placeholderTextColor={colors.textMuted}
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-          </View>
-
-          <View style={[styles.inputWrapper, { marginTop: 16 }]}>
-            <Icon name="lock" color={colors.textMuted} size={20} />
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              placeholderTextColor={colors.textMuted}
-              secureTextEntry={!passwordVisible}
-              value={password}
-              onChangeText={setPassword}
-              autoCapitalize="none"
-            />
-            <TouchableOpacity onPress={() => setPasswordVisible(!passwordVisible)}>
-              <Icon
-                name={passwordVisible ? 'visibility' : 'visibility-off'}
-                color={colors.textMuted}
-                size={20}
-              />
-            </TouchableOpacity>
-          </View>
+        {/* Sign In Mode Tabs */}
+        <View style={styles.loginTabs}>
+          <TouchableOpacity
+            style={[styles.loginTab, loginMode === 'email' && styles.loginTabActive]}
+            onPress={() => {
+              setLoginMode('email');
+              setErrorMessage('');
+            }}
+          >
+            <Text style={[styles.loginTabText, loginMode === 'email' && styles.loginTabTextActive]}>Email Mode</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.loginTab, loginMode === 'phone' && styles.loginTabActive]}
+            onPress={() => {
+              setLoginMode('phone');
+              setErrorMessage('');
+            }}
+          >
+            <Text style={[styles.loginTabText, loginMode === 'phone' && styles.loginTabTextActive]}>Phone & OTP</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Forgot Password */}
-        <TouchableOpacity style={styles.forgotBtn}>
-          <Text style={styles.forgotText}>Forgot Password?</Text>
-        </TouchableOpacity>
+        {errorMessage.length > 0 && (
+          <View style={styles.errorContainer}>
+            <Icon name="error" color={colors.redDanger} size={16} />
+            <Text style={styles.errorText}>{errorMessage}</Text>
+          </View>
+        )}
 
-        {/* Sign In Button */}
-        <TouchableOpacity style={styles.signInBtn} onPress={onSignInSuccess}>
-          <LinearGradient
-            colors={[colors.gradientStart, colors.gradientEnd]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.gradient}
-          >
-            <View style={styles.btnContent}>
-              <Icon name="shield" color="#fff" size={20} />
-              <Text style={styles.btnText}>Sign In</Text>
-            </View>
-          </LinearGradient>
-        </TouchableOpacity>
+        {/* Inputs */}
+        <View style={styles.inputContainer}>
+          {loginMode === 'email' ? (
+            <>
+              <View style={styles.inputWrapper}>
+                <Icon name="email" color={colors.textMuted} size={20} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Email Address"
+                  placeholderTextColor={colors.textMuted}
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+              </View>
+
+              <View style={[styles.inputWrapper, { marginTop: 16 }]}>
+                <Icon name="lock" color={colors.textMuted} size={20} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Password"
+                  placeholderTextColor={colors.textMuted}
+                  secureTextEntry={!passwordVisible}
+                  value={password}
+                  onChangeText={setPassword}
+                  autoCapitalize="none"
+                />
+                <TouchableOpacity onPress={() => setPasswordVisible(!passwordVisible)}>
+                  <Icon
+                    name={passwordVisible ? 'visibility' : 'visibility-off'}
+                    color={colors.textMuted}
+                    size={20}
+                  />
+                </TouchableOpacity>
+              </View>
+
+              {/* Forgot Password */}
+              <TouchableOpacity style={styles.forgotBtn}>
+                <Text style={styles.forgotText}>Forgot Password?</Text>
+              </TouchableOpacity>
+
+              {/* Sign In Button */}
+              <TouchableOpacity style={styles.signInBtn} onPress={handleEmailSignIn}>
+                <LinearGradient
+                  colors={[colors.gradientStart, colors.gradientEnd]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.gradient}
+                >
+                  <View style={styles.btnContent}>
+                    <Icon name="shield" color="#fff" size={20} />
+                    <Text style={styles.btnText}>Sign In</Text>
+                  </View>
+                </LinearGradient>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <View style={styles.inputWrapper}>
+                <Icon name="phone" color={colors.textMuted} size={20} />
+                <Text style={styles.countryCode}>+91</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="10-digit Phone Number"
+                  placeholderTextColor={colors.textMuted}
+                  value={phoneNumber}
+                  onChangeText={setPhoneNumber}
+                  keyboardType="phone-pad"
+                  maxLength={10}
+                  editable={!otpSent}
+                />
+                {otpSent && (
+                  <TouchableOpacity
+                    style={styles.editPhoneBtn}
+                    onPress={() => {
+                      setOtpSent(false);
+                      setOtpCode('');
+                    }}
+                  >
+                    <Icon name="edit" color={colors.cyanAccent} size={16} />
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {otpSent && (
+                <View style={[styles.inputWrapper, { marginTop: 16 }]}>
+                  <Icon name="vpn-key" color={colors.textMuted} size={20} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter 6-digit OTP (e.g. 123456)"
+                    placeholderTextColor={colors.textMuted}
+                    value={otpCode}
+                    onChangeText={setOtpCode}
+                    keyboardType="number-pad"
+                    maxLength={6}
+                  />
+                </View>
+              )}
+
+              {otpSent && (
+                <View style={styles.otpTimerRow}>
+                  {otpTimer > 0 ? (
+                    <Text style={styles.timerText}>Resend OTP in {otpTimer}s</Text>
+                  ) : (
+                    <TouchableOpacity onPress={handleSendOtp}>
+                      <Text style={styles.resendText}>Resend OTP</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+
+              {/* Action Button */}
+              <TouchableOpacity
+                style={[styles.signInBtn, { marginTop: otpSent ? 16 : 24 }]}
+                onPress={otpSent ? handleVerifyOtp : handleSendOtp}
+              >
+                <LinearGradient
+                  colors={[colors.gradientStart, colors.gradientEnd]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.gradient}
+                >
+                  <View style={styles.btnContent}>
+                    <Icon name="shield" color="#fff" size={20} />
+                    <Text style={styles.btnText}>
+                      {otpSent ? 'Verify & Sign In' : 'Send OTP Verification'}
+                    </Text>
+                  </View>
+                </LinearGradient>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
 
         {/* Divider */}
         <View style={styles.dividerContainer}>
@@ -361,6 +525,74 @@ const styles = StyleSheet.create({
   childSetupText: {
     color: colors.cyanAccent,
     fontSize: 14,
+    fontWeight: 'bold',
+  },
+  loginTabs: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(7, 5, 31, 0.4)',
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 10,
+    padding: 3,
+    marginBottom: 20,
+    width: '100%',
+  },
+  loginTab: {
+    flex: 1,
+    borderRadius: 8,
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
+  loginTabActive: {
+    backgroundColor: colors.purpleAccent,
+  },
+  loginTabText: {
+    color: colors.textMuted,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  loginTabTextActive: {
+    color: '#fff',
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.redDanger + '1E',
+    borderWidth: 1,
+    borderColor: colors.redDanger + '88',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    width: '100%',
+    marginBottom: 16,
+  },
+  errorText: {
+    color: colors.redDanger,
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginLeft: 8,
+  },
+  countryCode: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
+    marginRight: 4,
+    marginLeft: 12,
+  },
+  editPhoneBtn: {
+    padding: 4,
+  },
+  otpTimerRow: {
+    alignSelf: 'flex-end',
+    marginTop: 8,
+  },
+  timerText: {
+    color: colors.textMuted,
+    fontSize: 12,
+  },
+  resendText: {
+    color: colors.cyanAccent,
+    fontSize: 12,
     fontWeight: 'bold',
   },
 });
