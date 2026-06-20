@@ -1,9 +1,11 @@
+# ===========================
 # OSX
-#
+# ===========================
 .DS_Store
 
-# Xcode
-#
+# ===========================
+# Xcode / iOS
+# ===========================
 build/
 *.pbxuser
 !default.pbxuser
@@ -21,9 +23,13 @@ DerivedData
 *.ipa
 *.xcuserstate
 **/.xcode.env.local
+**/Pods/
+/vendor/bundle/
+ios/build/
 
-# Android/IntelliJ
-#
+# ===========================
+# Android / IntelliJ
+# ===========================
 build/
 .idea
 .gradle
@@ -35,38 +41,55 @@ local.properties
 !debug.keystore
 .kotlin/
 
-# node.js
-#
+# Android build outputs - These are GENERATED files.
+# Never commit these. They are rebuilt automatically on each machine.
+android/app/build/
+android/build/
+android/.gradle/
+android/app/.cxx/
+
+# Pre-bundled JS assets - ROOT CAUSE of stale screens.
+# This folder is auto-generated when you run `react-native bundle`.
+# It should NEVER be committed so each device always gets a fresh bundle.
+android/app/src/main/assets/index.android.bundle
+android/app/src/main/assets/index.android.bundle.map
+android/app/src/main/assets/*.bundle
+android/app/src/main/assets/*.map
+
+# ===========================
+# Metro Bundler Cache
+# ===========================
+.metro-health-check*
+
+# ===========================
+# Node.js
+# ===========================
 node_modules/
 npm-debug.log
 yarn-error.log
 
-# fastlane
-#
-# It is recommended to not store the screenshots in the git repo. Instead, use fastlane to re-generate the
-# screenshots whenever they are needed.
-# For more information about the recommended setup visit:
-# https://docs.fastlane.tools/best-practices/source-control/
+# ===========================
+# Bundle Artifacts
+# ===========================
+*.jsbundle
+*.jsbundle.map
 
+# ===========================
+# Fastlane
+# ===========================
 **/fastlane/report.xml
 **/fastlane/Preview.html
 **/fastlane/screenshots
 **/fastlane/test_output
 
-# Bundle artifact
-*.jsbundle
-
-# Ruby / CocoaPods
-**/Pods/
-/vendor/bundle/
-
-# Temporary files created by Metro to check the health of the file watcher
-.metro-health-check*
-
-# testing
+# ===========================
+# Testing
+# ===========================
 /coverage
 
+# ===========================
 # Yarn
+# ===========================
 .yarn/*
 !.yarn/patches
 !.yarn/plugins

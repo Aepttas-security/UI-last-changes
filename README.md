@@ -1,97 +1,138 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# Aepttas Shield XDR — React Native UI
 
-# Getting Started
+> AI-Powered Mobile Security Suite  
+> Built with **React Native 0.86** + **TypeScript**
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+---
 
-## Step 1: Start Metro
+## ⚠️ Important: Why Do I See an Old Screen?
 
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
+If you see **stale/old UI** after cloning this repo, it means Metro is serving a **cached old bundle**.  
+Always follow the setup steps below to get a fresh build every time.
 
-To start the Metro dev server, run the following command from the root of your React Native project:
+---
 
-```sh
-# Using npm
-npm start
+## Requirements
 
-# OR using Yarn
-yarn start
+Make sure you have these installed on your machine **before** running the project:
+
+| Tool | Version |
+|---|---|
+| Node.js | >= 22.11.0 |
+| JDK | 17 (recommended) |
+| Android Studio | Latest |
+| Android NDK | 26.1.10909125 or latest |
+| CMake | 3.22.1 or latest |
+| React Native CLI | via npx (no global install needed) |
+
+> **IMPORTANT:** Make sure your Android SDK path has **NO SPACES** in it.  
+> ❌ Bad: `C:\Users\John Doe\AppData\Local\Android\Sdk`  
+> ✅ Good: `C:\AndroidSDK`
+
+---
+
+## Setup Instructions (For New Machines)
+
+### Step 1 — Clone the repository
+```bash
+git clone https://github.com/Aepttas-security/ui-react-2.git
+cd ui-react-2
 ```
 
-## Step 2: Build and run your app
+### Step 2 — Install JavaScript dependencies
+```bash
+npm install
+```
+> This generates the `node_modules` folder. **Never skip this step.**
 
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
+### Step 3 — Start Metro Bundler (in a separate terminal)
+```bash
+npm start -- --reset-cache
+```
+> The `--reset-cache` flag ensures you always get the **latest code** and never see stale screens.
 
-### Android
-
-```sh
-# Using npm
+### Step 4 — Run on Android (in a new terminal)
+```bash
 npm run android
+```
+Or open the `android/` folder in Android Studio and press the **Run** button.
 
-# OR using Yarn
-yarn android
+### Step 5 — If you see "Unable to load script" on the emulator
+Run this command to forward the Metro port to your emulator:
+```bash
+# Standard path
+adb reverse tcp:8081 tcp:8081
+
+# If adb is not in PATH, use full path:
+C:\AndroidSDK\platform-tools\adb reverse tcp:8081 tcp:8081
 ```
 
-### iOS
+---
 
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
+## Quick Refresh (When UI changes are not visible)
 
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
+If the emulator shows an old screen after you've made code changes:
 
-```sh
-bundle install
+```bash
+# 1. Stop Metro (Ctrl+C in Metro terminal)
+
+# 2. Clean native build
+cd android && ./gradlew clean && cd ..
+
+# 3. Restart Metro with cache reset
+npm start -- --reset-cache
+
+# 4. In a separate terminal, rebuild
+npm run android
 ```
 
-Then, and every time you update your native dependencies, run:
+Or, if Metro is running, just press **R twice** on your keyboard inside the emulator to reload JavaScript.
 
-```sh
-bundle exec pod install
+---
+
+## Project Structure
+
+```
+ui-react-2/
+├── src/
+│   ├── screens/          # All application screens
+│   │   ├── LoginScreen.tsx
+│   │   ├── DashboardScreen.tsx
+│   │   ├── GeoTrackingScreen.tsx
+│   │   ├── ParentalControlScreen.tsx
+│   │   ├── MalwareAnalysisScreen.tsx
+│   │   ├── CallerIntelligenceScreen.tsx
+│   │   ├── VulnerabilityDetectionScreen.tsx
+│   │   ├── ChildModeScreen.tsx
+│   │   └── ChildLinkScreen.tsx
+│   ├── components/       # Reusable components (Icon, etc.)
+│   └── styles/           # Design system (theme.ts, colors)
+├── android/              # Native Android project
+├── App.tsx               # Root app component & navigation
+└── index.js              # Entry point
 ```
 
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
+---
 
-```sh
-# Using npm
-npm run ios
+## Key Features
 
-# OR using Yarn
-yarn ios
-```
+- 🔒 **Login Screen** — Email + Phone/OTP authentication
+- 📊 **Dashboard** — Subscription modal, quick action tiles
+- 🌍 **Geo Tracking** — IP geolocation with lat/long coordinates
+- 🛡️ **Malware Analysis** — APK scanner with direct file deletion
+- 👨‍👩‍👧 **Parental Control** — Dynamic QR pairing code, child monitoring
+- 📞 **Caller Intelligence** — Spam detection, call blocking
+- 🔍 **Vulnerability Detection** — CVE search, CERT-In advisories
+- 📱 **Child Mode** — Restricted device mode with SOS
 
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
+---
 
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
+## Common Errors & Fixes
 
-## Step 3: Modify your app
-
-Now that you have successfully run the app, let's make changes!
-
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
-
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
-
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
-
-## Congratulations! :tada:
-
-You've successfully run and modified your React Native App. :partying_face:
-
-### Now what?
-
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
-
-# Troubleshooting
-
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
-
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+| Error | Fix |
+|---|---|
+| `Unable to load script` | Run `adb reverse tcp:8081 tcp:8081`, then reload |
+| Old/stale screen showing | Run `npm start -- --reset-cache` |
+| `Error resolving plugin com.facebook.react` | Run `npm install` first, then sync Gradle |
+| `CMake toolchain not found` | Move Android SDK to a path with no spaces |
+| `NDK folder not found` | Install NDK via Android Studio → SDK Manager → SDK Tools |
