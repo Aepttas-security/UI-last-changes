@@ -71,7 +71,7 @@ export const ChildModeScreen: React.FC<ChildModeScreenProps> = ({ onUnlink }) =>
     animation.start();
 
     return () => animation.stop();
-  }, [sosActive]);
+  }, [sosActive, pulseScale]);
 
   // SOS Countdown logic
   useEffect(() => {

@@ -9,7 +9,7 @@ import {
   Easing,
   StatusBar,
 } from 'react-native';
-import Svg, { Line, Circle, G } from 'react-native-svg';
+import Svg, { Line, Circle } from 'react-native-svg';
 import { colors } from '../styles/theme';
 import { Icon } from '../components/Icon';
 
@@ -114,7 +114,7 @@ export const GeoTrackingScreen: React.FC<GeoTrackingScreenProps> = ({ onBack }) 
         })
       ])
     ).start();
-  }, []);
+  }, [pulseAnim, rotateAnim]);
 
   const spin = rotateAnim.interpolate({
     inputRange: [0, 1],
@@ -284,7 +284,7 @@ export const GeoTrackingScreen: React.FC<GeoTrackingScreenProps> = ({ onBack }) 
         </Animated.View>
 
         {/* Request Markers */}
-        {filteredRequests.map((req, idx) => {
+        {filteredRequests.map((req) => {
           const isSelected = selectedRequest?.ip === req.ip;
           const markerColor =
             req.threatLevel === 'High Risk'

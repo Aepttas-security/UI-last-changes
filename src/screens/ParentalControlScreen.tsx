@@ -7,10 +7,9 @@ import {
   ScrollView,
   TextInput,
   Switch,
-  FlatList,
   StatusBar,
 } from 'react-native';
-import Svg, { Circle, Rect, Line, Path, G } from 'react-native-svg';
+import Svg, { Circle, Rect, Line, G } from 'react-native-svg';
 import { colors } from '../styles/theme';
 import { Icon } from '../components/Icon';
 

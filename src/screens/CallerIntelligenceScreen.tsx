@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   StyleSheet,
   View,
@@ -7,7 +7,6 @@ import {
   ScrollView,
   TextInput,
   Switch,
-  FlatList,
   Modal,
   Platform,
   ToastAndroid,
@@ -75,7 +74,7 @@ export const CallerIntelligenceScreen: React.FC<CallerIntelligenceScreenProps> =
     { id: '1', number: '+1 (415) 555-0192', type: 'Telemarketing', description: 'Called 5 times in 2 hours with pre-recorded message', timestamp: '2026-06-03 05:00 PM' }
   ]);
 
-  const [recentAlerts, setRecentAlerts] = useState<string[]>([
+  const [recentAlerts] = useState<string[]>([
     'Critical Scam Blocked: +1 (866) 492-3001 at 09:42 AM',
     'Auto-Blocked Telemarketer: +1 (510) 902-8811 at 08:30 AM',
     'Spam Risk Detected: +1 (202) 555-0143 at 11:30 AM'
