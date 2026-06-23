@@ -12,6 +12,7 @@ import {
 import Svg, { Circle, Rect, Line, G } from 'react-native-svg';
 import { colors } from '../styles/theme';
 import { Icon } from '../components/Icon';
+import { useParentalControl } from '../hooks/useParentalControl';
 
 interface ChildProfile {
   id: string;
@@ -65,43 +66,40 @@ const initialProfiles: ChildProfile[] = [
 ];
 
 export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ onBack }) => {
-  const [selectedProfileId, setSelectedProfileId] = useState('1');
+  const {
+    isLoading,
+    backendAvailable,
+    children,
+    selectedProfileId,
+    selectProfile,
+    deviceLocked,
+    changeDeviceLock,
+    limitMinutes,
+    currentUsageMinutes,
+    changeChildDailyLimit,
+    apps,
+    toggleBlockApp,
+    blockedUrls,
+    addBlacklistUrl,
+    removeBlacklistUrl,
+    blockedCategories,
+    toggleFilterCategory,
+    location,
+    geofences,
+    addNewGeofence,
+    reportSummary,
+    sosActive,
+    triggerSOS,
+    activeAlerts,
+    updateSosPreferences,
+    getSosPreferences,
+    generateLinkingCode,
+  } = useParentalControl();
+
   const [activeTab, setActiveTab] = useState('Overview');
-  const [deviceLocked, setDeviceLocked] = useState(false);
-
-  // Limits state
-  const [alexLimitMinutes, setAlexLimitMinutes] = useState(240);
-  const [emmaLimitMinutes, setEmmaLimitMinutes] = useState(120);
-
-  // App Blocks state (map structure)
-  const [alexBlockedApps, setAlexBlockedApps] = useState<{ [key: string]: boolean }>({
-    Roblox: false, YouTube: false, Chrome: false, Discord: true, TikTok: true
-  });
-  const [emmaBlockedApps, setEmmaBlockedApps] = useState<{ [key: string]: boolean }>({
-    'YouTube Kids': false, Minecraft: false, Roblox: true, YouTube: true, Safari: false
-  });
-
-  // Filter state
-  const [blockedUrls, setBlockedUrls] = useState<string[]>([
-    'tiktok.com', 'instagram.com', 'snapchat.com', 'reddit.com'
-  ]);
   const [customUrlInput, setCustomUrlInput] = useState('');
-
-  const [blockedCategories, setBlockedCategories] = useState<{ [key: string]: boolean }>({
-    'Adult Content': true,
-    'Gambling': false,
-    'Social Media': false,
-    'Gaming': false,
-    'Violence/Weapons': true,
-  });
-
-  const handleToggleCategory = (category: string, val: boolean) => {
-    setBlockedCategories(prev => ({
-      ...prev,
-      [category]: val
-    }));
-  };
-
+  const [sosBannerVisible, setSosBannerVisible] = useState(true);
+  
   // Geofencing state
   const [geofenceRadius, setGeofenceRadius] = useState(120);
   const [locationTrackingEnabled, setLocationTrackingEnabled] = useState(true);
@@ -122,33 +120,46 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
   const [notifySosEmail, setNotifySosEmail] = useState(true);
 
   // SOS state
-  const [sosActive, setSosActive] = useState(false);
   const [sosTriggeredBy, setSosTriggeredBy] = useState('');
 
   // Pairing Code & QR Code state
   const [pairingCode, setPairingCode] = useState('');
 
-  const refreshPairingCode = () => {
-    const digits = '0123456789';
-    let code = '';
-    for (let i = 0; i < 6; i++) {
-      if (i === 3) code += '-';
-      code += digits[Math.floor(Math.random() * 10)];
+  const refreshPairingCode = async () => {
+    const code = await generateLinkingCode();
+    if (code) {
+      setPairingCode(code);
     }
-    setPairingCode(code);
   };
 
-  // Generate pairing code on mount (e.g. login/entry into Parental Control screen)
-  useEffect(() => {
-    refreshPairingCode();
-  }, []);
-
-  // Also refresh when activeTab becomes 'Link'
+  // Generate pairing code on Link tab load or profile change
   useEffect(() => {
     if (activeTab === 'Link') {
       refreshPairingCode();
     }
-  }, [activeTab]);
+  }, [activeTab, selectedProfileId]);
+
+  // Load preferences when profile changes
+  useEffect(() => {
+    const prefs = getSosPreferences();
+    if (prefs) {
+      setEmailAlertsEnabled(prefs.email_enabled);
+      setSmsAlertsEnabled(prefs.phone_enabled);
+      setDemoEmail(prefs.parent_email || 'parent@family.net');
+      setDemoPhone(prefs.parent_phone || '+1 (555) 019-8372');
+    }
+  }, [selectedProfileId]);
+
+  // Save preferences when they change
+  useEffect(() => {
+    updateSosPreferences(emailAlertsEnabled, demoEmail, smsAlertsEnabled, demoPhone);
+  }, [emailAlertsEnabled, demoEmail, smsAlertsEnabled, demoPhone]);
+
+  useEffect(() => {
+    if (sosActive) {
+      setSosBannerVisible(true);
+    }
+  }, [sosActive]);
 
   const renderQRCode = (code: string, size = 180) => {
     const matrixSize = 21; // 21x21 grid for QR Version 1
@@ -231,30 +242,28 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
     );
   };
 
-  const currentLimitMinutes = selectedProfileId === '1' ? alexLimitMinutes : emmaLimitMinutes;
-  const setLimitMinutes = selectedProfileId === '1' ? setAlexLimitMinutes : setEmmaLimitMinutes;
+  const activeChild = children.find(p => p.id === selectedProfileId) || children[0] || initialProfiles[0];
+  if (activeChild) {
+    activeChild.currentUsageMinutes = currentUsageMinutes;
+    activeChild.totalLimitMinutes = limitMinutes;
+  }
 
-  const currentBlockedApps = selectedProfileId === '1' ? alexBlockedApps : emmaBlockedApps;
-  const setCurrentBlockedApps = selectedProfileId === '1' ? setAlexBlockedApps : setEmmaBlockedApps;
+  const currentLimitMinutes = limitMinutes;
+  const setLimitMinutes = changeChildDailyLimit;
 
-  const activeChild = initialProfiles.find(p => p.id === selectedProfileId) || initialProfiles[0];
-
-  const handleToggleBlockApp = (appName: string, val: boolean) => {
-    setCurrentBlockedApps({
-      ...currentBlockedApps,
-      [appName]: val
-    });
+  const handleToggleCategory = (category: string, val: boolean) => {
+    toggleFilterCategory(category, val);
   };
 
   const handleAddUrl = () => {
     if (customUrlInput.trim().length > 0) {
-      setBlockedUrls([...blockedUrls, customUrlInput.trim().toLowerCase()]);
+      addBlacklistUrl(customUrlInput.trim());
       setCustomUrlInput('');
     }
   };
 
   const handleRemoveUrl = (url: string) => {
-    setBlockedUrls(blockedUrls.filter(u => u !== url));
+    removeBlacklistUrl(url);
   };
 
   const tabs = ['Overview', 'Limits', 'Apps', 'Filter', 'Location', 'Reports', 'Alerts', 'SOS', 'Link'];
@@ -325,7 +334,7 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
 
       {/* 2. CHILD PROFILE SELECTOR ROW */}
       <View style={styles.profilesRow}>
-        {initialProfiles.map(profile => {
+        {children.map(profile => {
           const isSelected = selectedProfileId === profile.id;
           return (
             <TouchableOpacity
@@ -334,7 +343,7 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
                 styles.profileCard,
                 isSelected ? { borderColor: profile.avatarColor } : styles.profileCardInactive,
               ]}
-              onPress={() => setSelectedProfileId(profile.id)}
+              onPress={() => selectProfile(profile.id)}
             >
               <View style={[styles.avatar, { backgroundColor: profile.avatarColor }]}>
                 <Text style={styles.avatarText}>{profile.name.charAt(0)}</Text>
@@ -342,7 +351,7 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
               <View style={styles.profileInfo}>
                 <Text style={styles.profileName}>{profile.name}</Text>
                 <Text style={styles.profileSub} numberOfLines={1}>
-                  {profile.age} yrs • {profile.deviceName}
+                  {profile.age} yrs • {profile.deviceName || profile.device}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -369,8 +378,8 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
       </View>
 
       {/* SOS Alert Banner */}
-      {sosActive && (
-        <TouchableOpacity style={styles.sosBanner} onPress={() => setSosActive(false)}>
+      {sosActive && sosBannerVisible && (
+        <TouchableOpacity style={styles.sosBanner} onPress={() => setSosBannerVisible(false)}>
           <View style={styles.sosBannerContent}>
             <Icon name="warning" color="#fff" size={20} />
             <View style={styles.sosBannerTexts}>
@@ -455,7 +464,7 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
 
               <TouchableOpacity
                 style={[styles.remoteLockBtn, { backgroundColor: deviceLocked ? colors.greenSuccess : colors.redDanger }]}
-                onPress={() => setDeviceLocked(!deviceLocked)}
+                onPress={() => changeDeviceLock(!deviceLocked)}
               >
                 <Icon name={deviceLocked ? 'lock-open' : 'lock'} color="#fff" size={18} />
                 <Text style={styles.remoteLockBtnText}>
@@ -466,7 +475,7 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
 
             {/* App Usage List */}
             <Text style={styles.blockSectionTitle}>Most Used Apps Today</Text>
-            {activeChild.appUsage.map(usage => (
+            {activeChild.appUsage.map((usage: any) => (
               <View key={usage.name} style={styles.usageRow}>
                 <View style={styles.usageLeft}>
                   <View style={[styles.appIconContainer, { backgroundColor: usage.color + '22' }]}>
@@ -581,23 +590,23 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
         {activeTab === 'Apps' && (
           <View style={{ width: '100%' }}>
             <Text style={styles.blockSectionTitle}>App Restriction Policies</Text>
-            {Object.keys(currentBlockedApps).map(appName => {
-              const isBlocked = currentBlockedApps[appName];
+            {apps.map(app => {
+              const isBlocked = app.is_blocked;
               return (
-                <View key={appName} style={styles.policyRow}>
+                <View key={app.app_id} style={styles.policyRow}>
                   <View style={styles.policyLeft}>
                     <Icon
                       name={
-                        appName === 'Roblox' || appName === 'Minecraft'
+                        app.app_name === 'Roblox' || app.app_name === 'Minecraft'
                           ? 'gamepad'
-                          : appName.includes('YouTube')
+                          : app.app_name.includes('YouTube')
                           ? 'play-circle'
                           : 'globe'
                       }
                       color={isBlocked ? colors.redDanger : colors.greenSuccess}
                       size={20}
                     />
-                    <Text style={styles.policyName}>{appName}</Text>
+                    <Text style={styles.policyName}>{app.app_name}</Text>
                   </View>
                   <View style={styles.policyRight}>
                     <Text style={[styles.statusText, { color: isBlocked ? colors.redDanger : colors.greenSuccess }]}>
@@ -605,7 +614,7 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
                     </Text>
                     <Switch
                       value={!isBlocked}
-                      onValueChange={val => handleToggleBlockApp(appName, !val)}
+                      onValueChange={() => toggleBlockApp(app.app_id, app.app_name)}
                       trackColor={{ true: colors.greenSuccess, false: colors.redDanger }}
                     />
                   </View>
@@ -888,7 +897,7 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
               style={[styles.primaryBtn, { backgroundColor: colors.redDanger }]}
               onPress={() => {
                 setSosTriggeredBy(activeChild.name);
-                setSosActive(true);
+                triggerSOS(13.0827, 80.2707, 'Simulated SOS panic alert triggered from Child Device');
                 setActiveTab('Overview');
               }}
             >
