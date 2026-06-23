@@ -40,10 +40,17 @@ export function useParentalControl() {
       age: 12,
       avatarColor: '#A855F7',
       battery: '84%',
+      batteryLevel: 84,
       device: 'Samsung S23 Ultra',
+      deviceName: 'Samsung S23 Ultra',
       lastActive: 'Active Now',
       is_active_online: true,
       linking_code: null,
+      appUsage: [
+        { name: 'Roblox', time: '1h 15m', color: '#EC4899' },
+        { name: 'YouTube', time: '45m', color: '#A855F7' },
+        { name: 'Chrome', time: '15m', color: '#06B6D4' }
+      ]
     },
     {
       id: '2',
@@ -51,10 +58,16 @@ export function useParentalControl() {
       age: 8,
       avatarColor: '#EC4899',
       battery: '92%',
+      batteryLevel: 92,
       device: 'iPad Mini 6',
+      deviceName: 'iPad Mini 6',
       lastActive: 'Active 5m ago',
       is_active_online: true,
       linking_code: null,
+      appUsage: [
+        { name: 'YouTube Kids', time: '45m', color: '#F97316' },
+        { name: 'Minecraft', time: '30m', color: '#10B981' }
+      ]
     }
   ]);
 
@@ -242,7 +255,9 @@ export function useParentalControl() {
           age: c.age,
           avatarColor: index === 0 ? '#A855F7' : '#EC4899',
           battery: c.battery || '0%',
+          batteryLevel: parseInt(c.battery || '0', 10) || 0,
           device: c.device || 'Unlinked Device Slot',
+          deviceName: c.device || 'Unlinked Device Slot',
           lastActive: c.is_active_online ? 'Active Now' : 'Offline',
           is_active_online: c.is_active_online,
           linking_code: c.linking_code,

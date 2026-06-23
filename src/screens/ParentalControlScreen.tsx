@@ -475,7 +475,7 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
 
             {/* App Usage List */}
             <Text style={styles.blockSectionTitle}>Most Used Apps Today</Text>
-            {activeChild.appUsage.map((usage: any) => (
+            {(activeChild.appUsage || []).map((usage: any) => (
               <View key={usage.name} style={styles.usageRow}>
                 <View style={styles.usageLeft}>
                   <View style={[styles.appIconContainer, { backgroundColor: usage.color + '22' }]}>
