@@ -87,8 +87,39 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
   ]);
   const [customUrlInput, setCustomUrlInput] = useState('');
 
+  const [blockedCategories, setBlockedCategories] = useState<{ [key: string]: boolean }>({
+    'Adult Content': true,
+    'Gambling': false,
+    'Social Media': false,
+    'Gaming': false,
+    'Violence/Weapons': true,
+  });
+
+  const handleToggleCategory = (category: string, val: boolean) => {
+    setBlockedCategories(prev => ({
+      ...prev,
+      [category]: val
+    }));
+  };
+
   // Geofencing state
   const [geofenceRadius, setGeofenceRadius] = useState(120);
+  const [locationTrackingEnabled, setLocationTrackingEnabled] = useState(true);
+
+  // Notification State
+  const [demoPhone, setDemoPhone] = useState('+1 (555) 019-8372');
+  const [demoEmail, setDemoEmail] = useState('parent@family.net');
+  const [emailAlertsEnabled, setEmailAlertsEnabled] = useState(true);
+  const [smsAlertsEnabled, setSmsAlertsEnabled] = useState(true);
+  
+  const [notifyLimitsPhone, setNotifyLimitsPhone] = useState(true);
+  const [notifyLimitsEmail, setNotifyLimitsEmail] = useState(true);
+
+  const [notifyLocationPhone, setNotifyLocationPhone] = useState(true);
+  const [notifyLocationEmail, setNotifyLocationEmail] = useState(true);
+
+  const [notifySosPhone, setNotifySosPhone] = useState(true);
+  const [notifySosEmail, setNotifySosEmail] = useState(true);
 
   // SOS state
   const [sosActive, setSosActive] = useState(false);
@@ -226,7 +257,7 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
     setBlockedUrls(blockedUrls.filter(u => u !== url));
   };
 
-  const tabs = ['Overview', 'Limits', 'Apps', 'Filter', 'Location', 'Reports', 'SOS', 'Link'];
+  const tabs = ['Overview', 'Limits', 'Apps', 'Filter', 'Location', 'Reports', 'Alerts', 'SOS', 'Link'];
 
   // Circular progress math
   const radius = 50;
@@ -234,6 +265,47 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
   const circumference = 2 * Math.PI * radius;
   const progressPercent = activeChild.currentUsageMinutes / currentLimitMinutes;
   const strokeDashoffset = circumference - (Math.min(1, progressPercent) * (270 / 360)) * circumference;
+
+  const renderNotificationSettings = (
+    title: string,
+    phoneEnabled: boolean,
+    setPhoneEnabled: (val: boolean) => void,
+    emailEnabled: boolean,
+    setEmailEnabled: (val: boolean) => void
+  ) => (
+    <View style={[styles.settingCard, { marginTop: 16 }]}>
+      <Text style={styles.settingTitle}>{title} Notifications</Text>
+      <Text style={styles.settingSub}>Choose where to receive alerts</Text>
+
+      <View style={styles.cardDivider} />
+
+      <View style={styles.contactRow}>
+        <Icon name="phone" color={colors.cyanAccent} size={20} />
+        <View style={styles.contactInfo}>
+          <Text style={styles.contactLabel}>Parent Phone (Demo)</Text>
+          <Text style={styles.contactValue}>{demoPhone}</Text>
+        </View>
+        <Switch
+          value={phoneEnabled}
+          onValueChange={setPhoneEnabled}
+          trackColor={{ true: colors.greenSuccess }}
+        />
+      </View>
+
+      <View style={[styles.contactRow, { marginTop: 12 }]}>
+        <Icon name="email" color={colors.purpleAccent} size={20} />
+        <View style={styles.contactInfo}>
+          <Text style={styles.contactLabel}>Parent Email (Demo)</Text>
+          <Text style={styles.contactValue}>{demoEmail}</Text>
+        </View>
+        <Switch
+          value={emailEnabled}
+          onValueChange={setEmailEnabled}
+          trackColor={{ true: colors.greenSuccess }}
+        />
+      </View>
+    </View>
+  );
 
   return (
     <View style={styles.container}>
@@ -501,6 +573,8 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
                 </TouchableOpacity>
               </View>
             </View>
+
+            {renderNotificationSettings('Screen Time Limits', notifyLimitsPhone, setNotifyLimitsPhone, notifyLimitsEmail, setNotifyLimitsEmail)}
           </View>
         )}
 
@@ -543,6 +617,40 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
 
         {activeTab === 'Filter' && (
           <View style={{ width: '100%' }}>
+            <Text style={styles.blockSectionTitle}>Content Category Filter</Text>
+            {Object.keys(blockedCategories).map(category => {
+              const isBlocked = blockedCategories[category];
+              return (
+                <View key={category} style={styles.policyRow}>
+                  <View style={styles.policyLeft}>
+                    <Icon
+                      name={
+                        category === 'Adult Content' ? 'block' :
+                        category === 'Gambling' ? 'casino' :
+                        category === 'Social Media' ? 'people' :
+                        category === 'Gaming' ? 'sports-esports' :
+                        category === 'Violence/Weapons' ? 'gavel' : 'category'
+                      }
+                      color={isBlocked ? colors.redDanger : colors.greenSuccess}
+                      size={20}
+                    />
+                    <Text style={styles.policyName}>{category}</Text>
+                  </View>
+                  <View style={styles.policyRight}>
+                    <Text style={[styles.statusText, { color: isBlocked ? colors.redDanger : colors.greenSuccess }]}>
+                      {isBlocked ? 'BLOCKED' : 'ALLOWED'}
+                    </Text>
+                    <Switch
+                      value={!isBlocked}
+                      onValueChange={val => handleToggleCategory(category, !val)}
+                      trackColor={{ true: colors.greenSuccess, false: colors.redDanger }}
+                    />
+                  </View>
+                </View>
+              );
+            })}
+
+            <Text style={[styles.blockSectionTitle, { marginTop: 24 }]}>Custom Domain Filter</Text>
             <View style={styles.settingCard}>
               <Text style={styles.settingTitle}>Website Domain Filter</Text>
               <Text style={styles.settingSub}>Block inappropriate or unwanted web content</Text>
@@ -576,51 +684,88 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
 
         {activeTab === 'Location' && (
           <View style={{ width: '100%' }}>
-            {/* Geofence Radar Svg */}
-            <View style={styles.locationRadarCard}>
-              <Svg width="100%" height={200} viewBox="0 0 320 200">
-                {/* Radar Grid */}
-                <Circle cx="160" cy="100" r="80" stroke={colors.border} strokeWidth="1" fill="none" opacity={0.4} />
-                <Circle cx="160" cy="100" r="50" stroke={colors.border} strokeWidth="1" fill="none" opacity={0.4} />
-                <Circle cx="160" cy="100" r="20" stroke={colors.border} strokeWidth="1" fill="none" opacity={0.4} />
-                <Line x1="160" y1="10" x2="160" y2="190" stroke={colors.border} strokeWidth="1" opacity={0.3} />
-                <Line x1="70" y1="100" x2="250" y2="100" stroke={colors.border} strokeWidth="1" opacity={0.3} />
-
-                {/* Geofence safe zone circle */}
-                <Circle cx="160" cy="100" r={geofenceRadius / 2} fill={colors.greenSuccess} opacity={0.15} />
-                <Circle cx="160" cy="100" r={geofenceRadius / 2} stroke={colors.greenSuccess} strokeWidth="1.5" fill="none" strokeDasharray="4,4" />
-
-                {/* Child Position */}
-                <Circle cx="140" cy="80" r="6" fill={colors.purpleAccent} />
-                <Circle cx="140" cy="80" r="12" stroke={colors.purpleAccent} strokeWidth="1" fill="none" opacity={0.5} />
-              </Svg>
-
-              <Text style={styles.radarLabel}>Safe Zone Radius: {geofenceRadius} meters</Text>
-
-              {/* Adjust geofence radius */}
-              <View style={styles.sliderContainer}>
-                <TouchableOpacity
-                  style={styles.sliderButton}
-                  onPress={() => setGeofenceRadius(Math.max(50, geofenceRadius - 10))}
-                >
-                  <Text style={styles.sliderButtonText}>-</Text>
-                </TouchableOpacity>
-                <View style={styles.sliderTrackBg}>
-                  <View
-                    style={[
-                      styles.sliderTrackFill,
-                      { width: `${((geofenceRadius - 50) / 150) * 100}%` },
-                    ]}
-                  />
+            {/* Enable Location Tracking Switch Card */}
+            <View style={styles.settingCard}>
+              <View style={styles.switchRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.settingTitle}>Enable Location Tracking</Text>
+                  <Text style={styles.settingSub}>Track child's device location and enforce safe zone</Text>
                 </View>
-                <TouchableOpacity
-                  style={styles.sliderButton}
-                  onPress={() => setGeofenceRadius(Math.min(200, geofenceRadius + 10))}
-                >
-                  <Text style={styles.sliderButtonText}>+</Text>
-                </TouchableOpacity>
+                <Switch
+                  value={locationTrackingEnabled}
+                  onValueChange={setLocationTrackingEnabled}
+                  trackColor={{ true: colors.greenSuccess }}
+                />
               </View>
             </View>
+
+            {locationTrackingEnabled && (
+              <View style={[styles.locationRadarCard, { marginTop: 16 }]}>
+                {/* Geofence Radar Svg */}
+                <Svg width="100%" height={200} viewBox="0 0 320 200">
+                  {/* Radar Grid */}
+                  <Circle cx="160" cy="100" r="80" stroke={colors.greenSuccess + '33'} strokeWidth="1" fill="none" />
+                  <Circle cx="160" cy="100" r="50" stroke={colors.greenSuccess + '33'} strokeWidth="1" fill="none" />
+                  <Circle cx="160" cy="100" r="20" stroke={colors.greenSuccess + '33'} strokeWidth="1" fill="none" />
+                  <Line x1="160" y1="10" x2="160" y2="190" stroke={colors.greenSuccess + '22'} strokeWidth="1" />
+                  <Line x1="70" y1="100" x2="250" y2="100" stroke={colors.greenSuccess + '22'} strokeWidth="1" />
+
+                  {/* Geofence safe zone circle */}
+                  <Circle cx="160" cy="100" r={Math.min(90, geofenceRadius / 2)} fill={colors.greenSuccess + '1a'} />
+                  <Circle cx="160" cy="100" r={Math.min(90, geofenceRadius / 2)} stroke={colors.greenSuccess} strokeWidth="1.5" fill="none" strokeDasharray="4,4" />
+
+                  {/* Child Position */}
+                  <Circle cx="140" cy="80" r="6" fill={colors.purpleAccent} />
+                  <Circle cx="140" cy="80" r="12" stroke={colors.purpleAccent} strokeWidth="1" fill="none" opacity={0.5} />
+                </Svg>
+
+                {/* Safe Zone Radius row */}
+                <View style={styles.radiusInputRow}>
+                  <Text style={styles.radiusLabelText}>Safe Zone Radius:</Text>
+                  <View style={styles.radiusInputContainer}>
+                    <TextInput
+                      style={styles.radiusInput}
+                      value={geofenceRadius.toString()}
+                      onChangeText={val => {
+                        const parsed = parseInt(val, 10);
+                        if (!isNaN(parsed)) {
+                          setGeofenceRadius(parsed);
+                        } else if (val === '') {
+                          setGeofenceRadius(0);
+                        }
+                      }}
+                      keyboardType="numeric"
+                      textAlign="center"
+                    />
+                  </View>
+                  <Text style={styles.radiusUnitText}>meters</Text>
+                </View>
+
+                {/* Adjust geofence radius slider */}
+                <View style={styles.sliderContainer}>
+                  <TouchableOpacity
+                    style={styles.sliderButton}
+                    onPress={() => setGeofenceRadius(Math.max(10, geofenceRadius - 10))}
+                  >
+                    <Text style={styles.sliderButtonText}>-</Text>
+                  </TouchableOpacity>
+                  <View style={styles.sliderTrackBg}>
+                    <View
+                      style={[
+                        styles.sliderTrackFill,
+                        { width: `${Math.max(0, Math.min(100, ((geofenceRadius - 10) / 490) * 100))}%` },
+                      ]}
+                    />
+                  </View>
+                  <TouchableOpacity
+                    style={styles.sliderButton}
+                    onPress={() => setGeofenceRadius(Math.min(500, geofenceRadius + 10))}
+                  >
+                    <Text style={styles.sliderButtonText}>+</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
           </View>
         )}
 
@@ -669,6 +814,72 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
           </View>
         )}
 
+        {activeTab === 'Alerts' && (
+          <View style={{ width: '100%' }}>
+            <View style={styles.alertsCard}>
+              <Text style={styles.alertsCardTitle}>Notification Preferences</Text>
+              <Text style={styles.alertsCardSub}>
+                Receive alerts when your child visits restricted sites or leaves the safe zone.
+              </Text>
+
+              {/* Email Alerts Section */}
+              <View style={styles.alertOptionSection}>
+                <View style={styles.alertOptionHeader}>
+                  <View style={styles.alertIconRow}>
+                    <Icon name="email" color={colors.cyanAccent} size={22} />
+                    <Text style={styles.alertOptionTitle}>Email Alerts</Text>
+                  </View>
+                  <Switch
+                    value={emailAlertsEnabled}
+                    onValueChange={setEmailAlertsEnabled}
+                    trackColor={{ true: colors.greenSuccess }}
+                  />
+                </View>
+                <Text style={styles.alertOptionSub}>
+                  Send notifications to your registered email
+                </Text>
+                <TextInput
+                  style={styles.alertsInput}
+                  placeholder="Enter parent's email address"
+                  placeholderTextColor={colors.textMuted}
+                  value={demoEmail}
+                  onChangeText={setDemoEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+              </View>
+
+              <View style={styles.alertSectionDivider} />
+
+              {/* SMS / Phone Alerts Section */}
+              <View style={styles.alertOptionSection}>
+                <View style={styles.alertOptionHeader}>
+                  <View style={styles.alertIconRow}>
+                    <Icon name="phone" color={colors.purpleAccent} size={22} />
+                    <Text style={styles.alertOptionTitle}>SMS / Phone Alerts</Text>
+                  </View>
+                  <Switch
+                    value={smsAlertsEnabled}
+                    onValueChange={setSmsAlertsEnabled}
+                    trackColor={{ true: colors.greenSuccess }}
+                  />
+                </View>
+                <Text style={styles.alertOptionSub}>
+                  Send text messages to your phone number
+                </Text>
+                <TextInput
+                  style={styles.alertsInput}
+                  placeholder="Enter parent's phone number"
+                  placeholderTextColor={colors.textMuted}
+                  value={demoPhone}
+                  onChangeText={setDemoPhone}
+                  keyboardType="phone-pad"
+                />
+              </View>
+            </View>
+          </View>
+        )}
+
         {activeTab === 'SOS' && (
           <View style={styles.sosSimulationView}>
             <Icon name="warning" color={colors.redDanger} size={48} />
@@ -683,6 +894,8 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
             >
               <Text style={styles.primaryBtnText}>Trigger Simulated SOS</Text>
             </TouchableOpacity>
+
+            {renderNotificationSettings('Emergency SOS', notifySosPhone, setNotifySosPhone, notifySosEmail, setNotifySosEmail)}
           </View>
         )}
 
@@ -1067,6 +1280,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  contactRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    padding: 12,
+    borderRadius: 8,
+  },
+  contactInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  contactLabel: {
+    color: colors.textMuted,
+    fontSize: 11,
+  },
+  contactValue: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: 'bold',
+    marginTop: 2,
+  },
   cardDivider: {
     height: 1,
     backgroundColor: colors.border,
@@ -1384,5 +1618,107 @@ const styles = StyleSheet.create({
     color: colors.orangeWarning,
     fontSize: 11,
     fontWeight: '600',
+  },
+  radiusInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  radiusLabelText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginRight: 8,
+  },
+  radiusInputContainer: {
+    width: 80,
+    height: 38,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  radiusInput: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+    width: '100%',
+    height: '100%',
+    padding: 0,
+    textAlign: 'center',
+  },
+  radiusUnitText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  alertsCard: {
+    width: '100%',
+    borderRadius: 16,
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 20,
+  },
+  alertsCardTitle: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  alertsCardSub: {
+    color: colors.textMuted,
+    fontSize: 12,
+    marginTop: 4,
+    marginBottom: 20,
+    lineHeight: 16,
+  },
+  alertOptionSection: {
+    width: '100%',
+    marginVertical: 4,
+  },
+  alertOptionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  alertIconRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  alertOptionTitle: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: 'bold',
+    marginLeft: 12,
+  },
+  alertOptionSub: {
+    color: colors.textMuted,
+    fontSize: 12,
+    marginLeft: 34,
+    marginTop: 2,
+    marginBottom: 10,
+  },
+  alertsInput: {
+    height: 44,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    color: '#fff',
+    paddingHorizontal: 12,
+    fontSize: 14,
+    marginLeft: 34,
+    marginTop: 4,
+  },
+  alertSectionDivider: {
+    height: 1,
+    backgroundColor: colors.border,
+    marginVertical: 16,
   },
 });

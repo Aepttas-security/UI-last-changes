@@ -32,8 +32,14 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
   onOpenCallerIntelligence,
   onOpenVulnerabilityDetection,
 }) => {
-  const [showSubscriptionPopup, setShowSubscriptionPopup] = useState(true);
   const [activeTab, setActiveTab] = useState('Home');
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [profileView, setProfileView] = useState<'menu' | 'info' | 'settings' | 'subscription' | 'orders'>('menu');
+  const [profileData, setProfileData] = useState({
+    name: 'Leo Anderson',
+    phone: '+1 (555) 019-2831',
+    email: 'leo.anderson@example.com'
+  });
 
   const showToast = (message: string) => {
     if (Platform.OS === 'android') {
@@ -75,17 +81,24 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
             </View>
             <View style={styles.headerTitleContainer}>
               <View style={styles.titleBadgeRow}>
-                <Text style={styles.headerTitle}>Aepttas Shield XDR</Text>
+                <Text style={styles.headerTitle}>Aepttas Shield</Text>
               </View>
               <Text style={styles.headerSubtitle}>AI-Powered Mobile Security Suite</Text>
             </View>
           </View>
 
-          {/* Notification Bell */}
-          <TouchableOpacity style={styles.bellButton} onPress={onSignOut}>
-            <Icon name="notifications" color="#fff" size={20} />
-            <View style={styles.redDot} />
-          </TouchableOpacity>
+          <View style={styles.headerRight}>
+            {/* Notification Bell */}
+            <TouchableOpacity style={styles.bellButton} onPress={onSignOut}>
+              <Icon name="notifications" color="#fff" size={20} />
+              <View style={styles.redDot} />
+            </TouchableOpacity>
+
+            {/* Profile Icon */}
+            <TouchableOpacity style={styles.profileButton} onPress={() => { setProfileView('menu'); setShowProfileModal(true); }}>
+              <Icon name="person" color="#fff" size={20} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* 2. MAIN STATUS CARD */}
@@ -301,9 +314,9 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
             <Icon name="search" color={activeTab === 'Scan' ? colors.purpleAccent : colors.textMuted} size={22} />
             <Text style={[styles.navText, activeTab === 'Scan' && styles.navTextActive]}>Scan</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.navItem} onPress={() => setActiveTab('XDR Console')}>
-            <Icon name="terminal" color={activeTab === 'XDR Console' ? colors.purpleAccent : colors.textMuted} size={22} />
-            <Text style={[styles.navText, activeTab === 'XDR Console' && styles.navTextActive]}>XDR Console</Text>
+          <TouchableOpacity style={styles.navItem} onPress={() => setActiveTab('Console')}>
+            <Icon name="terminal" color={activeTab === 'Console' ? colors.purpleAccent : colors.textMuted} size={22} />
+            <Text style={[styles.navText, activeTab === 'Console' && styles.navTextActive]}>Console</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.navItem} onPress={() => setActiveTab('Reports')}>
             <Icon name="reports" color={activeTab === 'Reports' ? colors.purpleAccent : colors.textMuted} size={22} />
@@ -316,71 +329,199 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
         </View>
       </View>
 
-      {/* SPONSORED FLIPKART AD DIALOG POPUP */}
-      {/* SUBSCRIPTION UPGRADE POPUP */}
-      <Modal transparent={true} visible={showSubscriptionPopup} animationType="fade" onRequestClose={() => setShowSubscriptionPopup(false)}>
+
+
+      {/* PROFILE POPUP */}
+      <Modal transparent={true} visible={showProfileModal} animationType="fade" onRequestClose={() => setShowProfileModal(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             {/* Close X Button */}
-            <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setShowSubscriptionPopup(false)}>
+            <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setShowProfileModal(false)}>
               <Icon name="close" color="#fff" size={16} />
             </TouchableOpacity>
 
-            <View style={styles.subHeader}>
-              <Icon name="verified" color={colors.purpleAccent} size={20} />
-              <Text style={styles.subHeaderTag}>AEPTTAS SHIELD SUBSCRIPTION</Text>
-            </View>
+            {profileView === 'menu' ? (
+              <>
+                <Text style={styles.menuTitle}>Profile Menu</Text>
 
-            <Text style={styles.subMainTitle}>Upgrade to Premium Security</Text>
-            <Text style={styles.subDescription}>
-              Unlock full AI telemetry defense and safeguard your mobile workspace.
-            </Text>
+                <ScrollView style={styles.menuOptionsContainer} showsVerticalScrollIndicator={false}>
+                  <TouchableOpacity style={styles.menuOptionBtn} onPress={() => setProfileView('info')}>
+                    <Icon name="person" color={colors.cyanAccent} size={20} />
+                    <Text style={styles.menuOptionText}>Profile Info</Text>
+                    <Icon name="arrow-forward" color={colors.textMuted} size={16} />
+                  </TouchableOpacity>
 
-            {/* Plan Cards */}
-            <View style={styles.plansContainer}>
-              {/* Premium Plan */}
-              <TouchableOpacity
-                style={styles.planCard}
-                onPress={() => {
-                  showToast('Thank you for subscribing to Premium Shield!');
-                  setShowSubscriptionPopup(false);
-                }}
-              >
-                <View style={styles.planHeaderRow}>
-                  <Text style={styles.planName}>Premium Shield</Text>
-                  <Text style={styles.planPrice}>₹299/mo</Text>
-                </View>
-                <Text style={styles.planFeatures}>
-                  • Core APK Sandboxing{'\n'}• 2 Linked Child Devices{'\n'}• Basic Geo-tracking History
-                </Text>
-              </TouchableOpacity>
+                  <TouchableOpacity style={styles.menuOptionBtn} onPress={() => setProfileView('subscription')}>
+                    <Icon name="verified" color={colors.purpleAccent} size={20} />
+                    <Text style={styles.menuOptionText}>Subscription</Text>
+                    <Icon name="arrow-forward" color={colors.textMuted} size={16} />
+                  </TouchableOpacity>
 
-              {/* Elite Plan */}
-              <TouchableOpacity
-                style={[styles.planCard, styles.planCardElite]}
-                onPress={() => {
-                  showToast('Welcome to Elite XDR Protection!');
-                  setShowSubscriptionPopup(false);
-                }}
-              >
-                <View style={styles.eliteBadgeRow}>
-                  <View style={styles.eliteBadge}>
-                    <Text style={styles.eliteBadgeText}>MOST POPULAR</Text>
+                  <TouchableOpacity style={styles.menuOptionBtn} onPress={() => setProfileView('orders')}>
+                    <Icon name="receipt" color={colors.orangeWarning} size={20} />
+                    <Text style={styles.menuOptionText}>Orders & Payments</Text>
+                    <Icon name="arrow-forward" color={colors.textMuted} size={16} />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity style={styles.menuOptionBtn} onPress={() => showToast('Feedback feature coming soon.')}>
+                    <Icon name="feedback" color={colors.greenSuccess} size={20} />
+                    <Text style={styles.menuOptionText}>Feedback</Text>
+                    <Icon name="arrow-forward" color={colors.textMuted} size={16} />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity style={styles.menuOptionBtn} onPress={() => showToast('Help feature coming soon.')}>
+                    <Icon name="help" color={colors.cyanAccent} size={20} />
+                    <Text style={styles.menuOptionText}>Help</Text>
+                    <Icon name="arrow-forward" color={colors.textMuted} size={16} />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity style={styles.menuOptionBtn} onPress={() => setProfileView('settings')}>
+                    <Icon name="settings" color={colors.greenSuccess} size={20} />
+                    <Text style={styles.menuOptionText}>Settings</Text>
+                    <Icon name="arrow-forward" color={colors.textMuted} size={16} />
+                  </TouchableOpacity>
+                </ScrollView>
+              </>
+            ) : profileView === 'info' ? (
+              <>
+                <TouchableOpacity style={styles.modalBackBtn} onPress={() => setProfileView('menu')}>
+                  <Icon name="arrow-back" color="#fff" size={16} />
+                </TouchableOpacity>
+
+                <View style={styles.profileHeader}>
+                  <View style={styles.profileAvatarContainer}>
+                    <View style={styles.profileAvatarBg}>
+                      <Icon name="person" color="#fff" size={40} />
+                    </View>
+                    <TouchableOpacity style={styles.editAvatarBtn} onPress={() => showToast('Edit photo feature coming soon.')}>
+                      <Icon name="edit" color="#000" size={14} />
+                    </TouchableOpacity>
                   </View>
                 </View>
-                <View style={styles.planHeaderRow}>
-                  <Text style={[styles.planName, { color: colors.cyanAccent }]}>Elite XDR Pro</Text>
-                  <Text style={[styles.planPrice, { color: colors.cyanAccent }]}>₹599/mo</Text>
-                </View>
-                <Text style={[styles.planFeatures, { color: '#e2e8f0' }]}>
-                  • Infinite Sandbox Telemetry{'\n'}• Unlimited Child Device Links{'\n'}• Secure VIP VPN Access{'\n'}• Live 24/7 Threat Intelligence
-                </Text>
-              </TouchableOpacity>
-            </View>
 
-            <TouchableOpacity onPress={() => setShowSubscriptionPopup(false)} style={styles.subSkipBtn}>
-              <Text style={styles.subSkipBtnText}>Continue with Limited Free Plan</Text>
-            </TouchableOpacity>
+                <View style={styles.profileInfoRow}>
+                  <Text style={styles.profileLabel}>Name</Text>
+                  <Text style={styles.profileValue}>{profileData.name}</Text>
+                </View>
+
+                <View style={styles.profileInfoRow}>
+                  <Text style={styles.profileLabel}>Phone Number</Text>
+                  <Text style={styles.profileValue}>{profileData.phone}</Text>
+                </View>
+
+                <View style={styles.profileInfoRow}>
+                  <Text style={styles.profileLabel}>Email</Text>
+                  <Text style={styles.profileValue}>{profileData.email}</Text>
+                </View>
+              </>
+            ) : profileView === 'settings' ? (
+              <>
+                <TouchableOpacity style={styles.modalBackBtn} onPress={() => setProfileView('menu')}>
+                  <Icon name="arrow-back" color="#fff" size={16} />
+                </TouchableOpacity>
+
+                <Text style={styles.menuTitle}>Settings</Text>
+
+                <ScrollView style={styles.menuOptionsContainer} showsVerticalScrollIndicator={false}>
+                  {['Account', 'Password', 'Change Password', 'Email', 'Change Email', 'Language'].map((settingItem, idx) => (
+                    <TouchableOpacity key={idx} style={styles.menuOptionBtn} onPress={() => showToast(`${settingItem} settings coming soon.`)}>
+                      <Text style={styles.menuOptionText}>{settingItem}</Text>
+                      <Icon name="arrow-forward" color={colors.textMuted} size={16} />
+                    </TouchableOpacity>
+                  ))}
+
+                  {/* Log Out Option */}
+                  <TouchableOpacity style={[styles.menuOptionBtn, { borderColor: 'rgba(239, 68, 68, 0.3)' }]} onPress={() => { setShowProfileModal(false); onSignOut(); }}>
+                    <Text style={[styles.menuOptionText, { color: colors.redDanger }]}>Log Out</Text>
+                    <Icon name="exit-to-app" color={colors.redDanger} size={20} />
+                  </TouchableOpacity>
+                </ScrollView>
+              </>
+            ) : profileView === 'subscription' ? (
+              <>
+                <TouchableOpacity style={styles.modalBackBtn} onPress={() => setProfileView('menu')}>
+                  <Icon name="arrow-back" color="#fff" size={16} />
+                </TouchableOpacity>
+
+                <View style={styles.subHeader}>
+                  <Icon name="verified" color={colors.purpleAccent} size={20} />
+                  <Text style={styles.subHeaderTag}>AEPTTAS SHIELD SUBSCRIPTION</Text>
+                </View>
+
+                <Text style={styles.subMainTitle}>Upgrade to Premium Security</Text>
+                <Text style={styles.subDescription}>
+                  Unlock full AI telemetry defense and safeguard your mobile workspace.
+                </Text>
+
+                <ScrollView style={styles.menuOptionsContainer} showsVerticalScrollIndicator={false}>
+                  <View style={styles.plansContainer}>
+                    {/* Standard Shield Plan */}
+                    <TouchableOpacity
+                      style={styles.planCard}
+                      onPress={() => showToast('Thank you for subscribing to Standard Shield!')}
+                    >
+                      <View style={styles.planHeaderRow}>
+                        <Text style={styles.planName}>Standard Shield</Text>
+                        <Text style={styles.planPrice}>₹299/mo</Text>
+                      </View>
+                      <Text style={styles.planFeatures}>
+                        • Core APK Sandboxing{`\n`}• 2 Linked Child Devices{`\n`}• Basic Geo-tracking History
+                      </Text>
+                    </TouchableOpacity>
+
+                    {/* Premium Plan */}
+                    <TouchableOpacity
+                      style={[styles.planCard, styles.planCardElite]}
+                      onPress={() => showToast('Welcome to Premium Protection!')}
+                    >
+                      <View style={styles.eliteBadgeRow}>
+                        <View style={styles.eliteBadge}>
+                          <Text style={styles.eliteBadgeText}>MOST POPULAR</Text>
+                        </View>
+                      </View>
+                      <View style={styles.planHeaderRow}>
+                        <Text style={[styles.planName, { color: colors.cyanAccent }]}>Premium</Text>
+                        <Text style={[styles.planPrice, { color: colors.cyanAccent }]}>₹599/mo</Text>
+                      </View>
+                      <Text style={[styles.planFeatures, { color: '#e2e8f0' }]}>
+                        • Infinite Sandbox Telemetry{`\n`}• Unlimited Child Device Links{`\n`}• Secure VIP VPN Access{`\n`}• Live 24/7 Threat Intelligence
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </ScrollView>
+              </>
+            ) : (
+              <>
+                <TouchableOpacity style={styles.modalBackBtn} onPress={() => setProfileView('menu')}>
+                  <Icon name="arrow-back" color="#fff" size={16} />
+                </TouchableOpacity>
+
+                <Text style={styles.menuTitle}>Orders & Payments</Text>
+
+                <ScrollView style={styles.menuOptionsContainer} showsVerticalScrollIndicator={false}>
+                  <View style={[styles.planCard, { marginBottom: 12 }]}>
+                    <View style={styles.planHeaderRow}>
+                      <Text style={styles.planName}>No Orders Yet</Text>
+                    </View>
+                    <Text style={styles.planFeatures}>
+                      Your past purchases and payment history will appear here once you subscribe to a plan.
+                    </Text>
+                  </View>
+
+                  <TouchableOpacity style={styles.menuOptionBtn} onPress={() => showToast('Payment methods coming soon.')}>
+                    <Icon name="credit-card" color={colors.cyanAccent} size={20} />
+                    <Text style={styles.menuOptionText}>Manage Payment Methods</Text>
+                    <Icon name="arrow-forward" color={colors.textMuted} size={16} />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity style={styles.menuOptionBtn} onPress={() => showToast('Billing history coming soon.')}>
+                    <Icon name="receipt" color={colors.purpleAccent} size={20} />
+                    <Text style={styles.menuOptionText}>Billing History</Text>
+                    <Icon name="arrow-forward" color={colors.textMuted} size={16} />
+                  </TouchableOpacity>
+                </ScrollView>
+              </>
+            )}
           </View>
         </View>
       </Modal>
@@ -456,6 +597,10 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginTop: 2,
   },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   bellButton: {
     width: 40,
     height: 40,
@@ -466,6 +611,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
+    marginRight: 10,
+  },
+  profileButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: colors.purpleAccent + '88',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   redDot: {
     position: 'absolute',
@@ -475,6 +631,100 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: colors.redDanger,
+  },
+  profileHeader: {
+    alignItems: 'center',
+    marginBottom: 24,
+    marginTop: 10,
+  },
+  profileAvatarContainer: {
+    position: 'relative',
+  },
+  profileAvatarBg: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: colors.purpleAccent + '40',
+    borderWidth: 2,
+    borderColor: colors.purpleAccent,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  editAvatarBtn: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: colors.cyanAccent,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#07051f',
+  },
+  profileInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 12,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(123, 44, 191, 0.2)',
+  },
+  profileLabel: {
+    color: colors.textMuted,
+    fontSize: 12,
+  },
+  profileValue: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  menuTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    alignSelf: 'center',
+  },
+  menuOptionsContainer: {
+    width: '100%',
+    paddingTop: 8,
+  },
+  menuOptionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  menuOptionText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
+    flex: 1,
+    marginLeft: 12,
+  },
+  modalBackBtn: {
+    position: 'absolute',
+    top: 16,
+    left: 16,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
   },
   statusCard: {
     width: '100%',

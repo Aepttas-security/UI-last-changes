@@ -127,7 +127,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
 
         {/* Title */}
         <View style={styles.titleContainer}>
-          <Text style={styles.titleText}>Aepttas Shield XDR</Text>
+          <Text style={styles.titleText}>Aepttas Shield</Text>
         </View>
 
         <Text style={styles.subtitleText}>AI-Powered Mobile Security Suite</Text>

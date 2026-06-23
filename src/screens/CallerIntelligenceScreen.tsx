@@ -22,7 +22,7 @@ interface MockCall {
   name: string;
   number: string;
   riskScore: number;
-  type: 'Normal' | 'Spam' | 'Scam' | 'High-Risk';
+  type: 'Normal' | 'Spam' | 'Scam' | 'High-Risk' | 'Suspicious';
   carrier: string;
   location: string;
   frequency: string;
@@ -74,6 +74,13 @@ export const CallerIntelligenceScreen: React.FC<CallerIntelligenceScreenProps> =
     { id: '1', number: '+1 (415) 555-0192', type: 'Telemarketing', description: 'Called 5 times in 2 hours with pre-recorded message', timestamp: '2026-06-03 05:00 PM' }
   ]);
 
+  const [callHistory, setCallHistory] = useState<MockCall[]>([
+    { name: 'Leo (Family)', number: '+1 (555) 019-2831', riskScore: 2, type: 'Normal', carrier: 'AT&T', location: 'San Jose, CA', frequency: '12 calls/week' },
+    { name: 'Unknown Caller', number: '+1 (415) 555-0192', riskScore: 65, type: 'Suspicious', carrier: 'Unknown', location: 'Unknown', frequency: '2 calls/week' },
+    { name: 'Telemarketing Robocall', number: '+1 (202) 555-0143', riskScore: 85, type: 'Spam', carrier: 'Level 3 Telecom', location: 'Seattle, WA', frequency: '45 calls/week' },
+    { name: 'Delivery Driver', number: '+1 (310) 555-0199', riskScore: 10, type: 'Normal', carrier: 'T-Mobile', location: 'Los Angeles, CA', frequency: '1 call/week' },
+  ]);
+
   const [recentAlerts] = useState<string[]>([
     'Critical Scam Blocked: +1 (866) 492-3001 at 09:42 AM',
     'Auto-Blocked Telemarketer: +1 (510) 902-8811 at 08:30 AM',
@@ -99,7 +106,6 @@ export const CallerIntelligenceScreen: React.FC<CallerIntelligenceScreenProps> =
   const [showHighRiskAlert, setShowHighRiskAlert] = useState(false);
   const [showBlockConfirmation, setShowBlockConfirmation] = useState(false);
   const [showReportPopup, setShowReportPopup] = useState(false);
-  const [showAdPopup, setShowAdPopup] = useState(true);
 
   // Temp reporting variables
   const [reportType, setReportType] = useState('Robocall / Telemarketing');
@@ -309,6 +315,52 @@ export const CallerIntelligenceScreen: React.FC<CallerIntelligenceScreenProps> =
                 <Text style={styles.actionWidgetSub}>Reputation database</Text>
               </TouchableOpacity>
             </View>
+
+            {/* Inline Sponsored Flipkart Ad */}
+            <View style={[styles.modalContent, { borderColor: '#ffd900', borderWidth: 1, marginTop: 24 }]}>
+              <View style={styles.adHeader}>
+                <Icon name="info" color="#ffd900" size={14} />
+                <Text style={styles.adHeaderTag}>SPONSORED BY FLIPKART</Text>
+              </View>
+
+              <View style={styles.adBanner}>
+                <Svg width="100%" height="100%" style={StyleSheet.absoluteFill as any}>
+                  <Circle cx="120" cy="60" r="60" fill="#2874f0" opacity={0.1} />
+                  <Circle cx="120" cy="60" r="40" fill="#ffd900" opacity={0.1} />
+                  <Path
+                    d="M107 45 A15 15 0 0 1 133 45"
+                    fill="none"
+                    stroke="#ffd900"
+                    strokeWidth="2"
+                  />
+                  <Rect x="100" y="45" width="40" height="50" rx="4" ry="4" fill="#2874f0" />
+                </Svg>
+                <View style={styles.adBannerTexts}>
+                  <Text style={styles.adBannerTitle}>BIG BILLION DAYS</Text>
+                  <Text style={styles.adBannerSub}>UP TO 80% OFF ON ALL CATEGORIES</Text>
+                </View>
+              </View>
+
+              <Text style={styles.adMainTitle}>Flipkart Mega Deals Live!</Text>
+
+              <Text style={styles.adDescription}>
+                Get massive discounts on Smartphones, Laptops, Fashion & Home Decor. Extra 10% instant discount with HDFC, SBI and Axis Credit Cards. Limited hours remaining!
+              </Text>
+
+              <TouchableOpacity
+                style={styles.adCtaBtn}
+                onPress={() => showToast('Redirecting to Flipkart Special Deal store...')}
+              >
+                <LinearGradient
+                  colors={['#2874f0', '#ffd900']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.adCtaGradient}
+                >
+                  <Text style={styles.adCtaBtnText}>Claim Flipkart Deals Now</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
 
@@ -387,8 +439,24 @@ export const CallerIntelligenceScreen: React.FC<CallerIntelligenceScreenProps> =
 
             {/* Simulated Active Call Screen */}
             {activeSimulatedCall ? (
-              <View style={styles.callScreenCard}>
-                <Icon name="phone-in-talk" color={colors.purpleAccent} size={48} />
+              <View style={[styles.callScreenCard, {
+                backgroundColor: activeSimulatedCall.type === 'Spam' || activeSimulatedCall.type === 'Scam' || activeSimulatedCall.type === 'High-Risk' 
+                  ? 'rgba(239, 68, 68, 0.2)' 
+                  : activeSimulatedCall.type === 'Normal' 
+                  ? 'rgba(16, 185, 129, 0.2)' 
+                  : activeSimulatedCall.type === 'Suspicious' 
+                  ? 'rgba(245, 158, 11, 0.2)' 
+                  : '#0b0f19'
+              }]}>
+                <Icon name="phone-in-talk" color={
+                  activeSimulatedCall.type === 'Spam' || activeSimulatedCall.type === 'Scam' || activeSimulatedCall.type === 'High-Risk' 
+                    ? colors.redDanger 
+                    : activeSimulatedCall.type === 'Normal' 
+                    ? colors.greenSuccess 
+                    : activeSimulatedCall.type === 'Suspicious' 
+                    ? colors.orangeWarning 
+                    : colors.purpleAccent
+                } size={48} />
                 <Text style={styles.callScreenName}>{activeSimulatedCall.name}</Text>
                 <Text style={styles.callScreenNumber}>{activeSimulatedCall.number}</Text>
                 <Text style={styles.callScreenCarrier}>
@@ -480,7 +548,6 @@ export const CallerIntelligenceScreen: React.FC<CallerIntelligenceScreenProps> =
                 <Text style={styles.resultNumber}>{searchResult.number}</Text>
                 <Text style={styles.resultSub}>Carrier: {searchResult.carrier}</Text>
                 <Text style={styles.resultSub}>Location: {searchResult.location}</Text>
-                <Text style={styles.resultSub}>Frequency: {searchResult.frequency}</Text>
                 <Text
                   style={[
                     styles.resultScoreText,
@@ -504,10 +571,46 @@ export const CallerIntelligenceScreen: React.FC<CallerIntelligenceScreenProps> =
         {activeTab === 3 && (
           <View style={{ width: '100%' }}>
             <Text style={styles.sectionTitle}>CALL HISTORY LOGS</Text>
-            <View style={styles.listEmptyPlaceholder}>
-              <Icon name="phone" color={colors.textMuted} size={48} />
-              <Text style={styles.placeholderText}>All incoming calls cleared. Secure filter active.</Text>
-            </View>
+            {callHistory.length > 0 ? (
+              callHistory.map((call, idx) => {
+                let bgColor = 'rgba(255, 255, 255, 0.05)';
+                let labelColor = colors.textMuted;
+                if (call.type === 'Spam' || call.type === 'Scam' || call.type === 'High-Risk') {
+                  bgColor = 'rgba(239, 68, 68, 0.2)'; // redDanger
+                  labelColor = colors.redDanger;
+                } else if (call.type === 'Normal') {
+                  bgColor = 'rgba(16, 185, 129, 0.2)'; // greenSuccess
+                  labelColor = colors.greenSuccess;
+                } else if (call.type === 'Suspicious') {
+                  bgColor = 'rgba(245, 158, 11, 0.2)'; // orangeWarning (yellow)
+                  labelColor = colors.orangeWarning;
+                }
+                
+                return (
+                  <View key={idx} style={[styles.historyRow, { backgroundColor: bgColor }]}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.historyName}>{call.name}</Text>
+                      <Text style={styles.historyNumber}>{call.number}</Text>
+                      <Text style={styles.historyDate}>Type: <Text style={{color: labelColor, fontWeight: 'bold'}}>{call.type}</Text> | {call.location}</Text>
+                    </View>
+                    <TouchableOpacity
+                      style={styles.historyBtn}
+                      onPress={() => {
+                        setCallerToBlockOrReport(call);
+                        setShowBlockConfirmation(true);
+                      }}
+                    >
+                      <Text style={styles.historyBtnText}>Block</Text>
+                    </TouchableOpacity>
+                  </View>
+                );
+              })
+            ) : (
+              <View style={styles.listEmptyPlaceholder}>
+                <Icon name="phone" color={colors.textMuted} size={48} />
+                <Text style={styles.placeholderText}>All incoming calls cleared. Secure filter active.</Text>
+              </View>
+            )}
           </View>
         )}
 
@@ -859,72 +962,6 @@ export const CallerIntelligenceScreen: React.FC<CallerIntelligenceScreenProps> =
                 </View>
               </>
             )}
-          </View>
-        </View>
-      </Modal>
-      {/* SPONSORED FLIPKART AD DIALOG POPUP */}
-      <Modal transparent={true} visible={showAdPopup} animationType="fade" onRequestClose={() => setShowAdPopup(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { borderColor: '#ffd900', borderWidth: 1 }]}>
-            {/* Close X Button */}
-            <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setShowAdPopup(false)}>
-              <Icon name="close" color="#fff" size={16} />
-            </TouchableOpacity>
-
-            <View style={styles.adHeader}>
-              <Icon name="info" color="#ffd900" size={14} />
-              <Text style={styles.adHeaderTag}>SPONSORED BY FLIPKART</Text>
-            </View>
-
-            {/* Graphic Banner Illustration */}
-            <View style={styles.adBanner}>
-              {/* SVG Shopping Bag and Glowing Circle */}
-              <Svg width="100%" height="100%" style={StyleSheet.absoluteFill}>
-                <Circle cx="120" cy="60" r="60" fill="#2874f0" opacity={0.1} />
-                <Circle cx="120" cy="60" r="40" fill="#ffd900" opacity={0.1} />
-                {/* Bag Handle */}
-                <Path
-                  d="M107 45 A15 15 0 0 1 133 45"
-                  fill="none"
-                  stroke="#ffd900"
-                  strokeWidth="2"
-                />
-                {/* Bag Body */}
-                <Rect x="100" y="45" width="40" height="50" rx="4" ry="4" fill="#2874f0" />
-              </Svg>
-              <View style={styles.adBannerTexts}>
-                <Text style={styles.adBannerTitle}>BIG BILLION DAYS</Text>
-                <Text style={styles.adBannerSub}>UP TO 80% OFF ON ALL CATEGORIES</Text>
-              </View>
-            </View>
-
-            <Text style={styles.adMainTitle}>Flipkart Mega Deals Live!</Text>
-
-            <Text style={styles.adDescription}>
-              Get massive discounts on Smartphones, Laptops, Fashion & Home Decor. Extra 10% instant discount with HDFC, SBI and Axis Credit Cards. Limited hours remaining!
-            </Text>
-
-            {/* CTA Button */}
-            <TouchableOpacity
-              style={styles.adCtaBtn}
-              onPress={() => {
-                showToast('Redirecting to Flipkart Special Deal store...');
-                setShowAdPopup(false);
-              }}
-            >
-              <LinearGradient
-                colors={['#2874f0', '#ffd900']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.adCtaGradient}
-              >
-                <Text style={styles.adCtaBtnText}>Claim Flipkart Deals Now</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={() => setShowAdPopup(false)} style={styles.adSkipBtn}>
-              <Text style={styles.adSkipBtnText}>Skip and continue to Caller Management</Text>
-            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -1306,6 +1343,43 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontSize: 12,
     marginTop: 12,
+  },
+  historyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+  },
+  historyName: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  historyNumber: {
+    color: colors.textMuted,
+    fontSize: 12,
+    marginTop: 2,
+  },
+  historyDate: {
+    color: '#6B6E85',
+    fontSize: 11,
+    marginTop: 4,
+  },
+  historyBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  historyBtnText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: 'bold',
   },
   blockedRow: {
     flexDirection: 'row',
