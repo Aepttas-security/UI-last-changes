@@ -5,6 +5,7 @@ import { colors } from './src/styles/theme';
 
 // Import Screens
 import { LoginScreen } from './src/screens/LoginScreen';
+import { SignUpScreen } from './src/screens/SignUpScreen';
 import { DashboardScreen } from './src/screens/DashboardScreen';
 import { GeoTrackingScreen } from './src/screens/GeoTrackingScreen';
 import { ParentalControlScreen } from './src/screens/ParentalControlScreen';
@@ -16,6 +17,7 @@ import { VulnerabilityDetectionScreen } from './src/screens/VulnerabilityDetecti
 
 type ScreenName =
   | 'Login'
+  | 'SignUp'
   | 'Dashboard'
   | 'GeoTracking'
   | 'ParentalControl'
@@ -27,14 +29,36 @@ type ScreenName =
 
 function App() {
   const [currentScreen, setCurrentScreen] = useState<ScreenName>('Login');
+  const [signUpSuccessMessage, setSignUpSuccessMessage] = useState('');
 
   const renderScreen = () => {
     switch (currentScreen) {
       case 'Login':
         return (
           <LoginScreen
-            onSignInSuccess={() => setCurrentScreen('Dashboard')}
+            onSignInSuccess={() => {
+              setSignUpSuccessMessage('');
+              setCurrentScreen('Dashboard');
+            }}
             onSetUpChildDevice={() => setCurrentScreen('ChildLink')}
+            onGoToSignUp={() => {
+              setSignUpSuccessMessage('');
+              setCurrentScreen('SignUp');
+            }}
+            signUpSuccessMessage={signUpSuccessMessage}
+          />
+        );
+      case 'SignUp':
+        return (
+          <SignUpScreen
+            onSignUpSuccess={() => {
+              setSignUpSuccessMessage('Account created successfully! Please sign in.');
+              setCurrentScreen('Login');
+            }}
+            onGoToLogin={() => {
+              setSignUpSuccessMessage('');
+              setCurrentScreen('Login');
+            }}
           />
         );
       case 'Dashboard':

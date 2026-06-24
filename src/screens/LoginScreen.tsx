@@ -19,11 +19,15 @@ import { loginUser, AuthError } from '../data/authRepository';
 interface LoginScreenProps {
   onSignInSuccess: () => void;
   onSetUpChildDevice: () => void;
+  onGoToSignUp: () => void;
+  signUpSuccessMessage?: string; // shown when returning from SignUp
 }
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({
   onSignInSuccess,
   onSetUpChildDevice,
+  onGoToSignUp,
+  signUpSuccessMessage,
 }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -120,6 +124,14 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
           <Text style={styles.welcomeSubtitle}>Sign in to continue protecting your device</Text>
         </View>
 
+        {/* Success banner (after successful registration) */}
+        {signUpSuccessMessage && signUpSuccessMessage.length > 0 && (
+          <View style={styles.successContainer}>
+            <Icon name="shield" color="#10b981" size={16} />
+            <Text style={styles.successText}>{signUpSuccessMessage}</Text>
+          </View>
+        )}
+
         {errorMessage.length > 0 && (
           <View style={styles.errorContainer}>
             <Icon name="error" color={colors.redDanger} size={16} />
@@ -210,7 +222,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
         {/* Footer links */}
         <View style={styles.footerRow}>
           <Text style={styles.footerText}>Don't have an account? </Text>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={onGoToSignUp}>
             <Text style={styles.linkText}>Create Account</Text>
           </TouchableOpacity>
         </View>
@@ -431,6 +443,25 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: colors.redDanger,
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginLeft: 8,
+    flex: 1,
+  },
+  successContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#10b98120',
+    borderWidth: 1,
+    borderColor: '#10b98188',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    width: '100%',
+    marginBottom: 16,
+  },
+  successText: {
+    color: '#10b981',
     fontSize: 12,
     fontWeight: 'bold',
     marginLeft: 8,
