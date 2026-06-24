@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   StyleSheet,
   View,
@@ -7,14 +7,14 @@ import {
   TouchableOpacity,
   ScrollView,
   StatusBar,
-  Platform,
-  ToastAndroid,
+  ActivityIndicator,
   Alert,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Svg, { Path, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
 import { colors } from '../styles/theme';
 import { Icon } from '../components/Icon';
+import { loginUser, AuthError } from '../data/authRepository';
 
 interface LoginScreenProps {
   onSignInSuccess: () => void;
@@ -29,18 +29,39 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   const [password, setPassword] = useState('');
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleEmailSignIn = () => {
+  const handleEmailSignIn = async () => {
+    // Basic client-side validation
     if (!email.trim()) {
-      setErrorMessage('Please enter your email or phone number');
+      setErrorMessage('Please enter your email address');
+      return;
+    }
+    if (!email.toLowerCase().endsWith('@gmail.com')) {
+      setErrorMessage('Email must end with @gmail.com');
       return;
     }
     if (!password.trim()) {
       setErrorMessage('Please enter your password');
       return;
     }
+
     setErrorMessage('');
-    onSignInSuccess();
+    setIsLoading(true);
+
+    try {
+      // Call the backend - verifies credentials against Neon PostgreSQL
+      const result = await loginUser({ email, password });
+
+      // Login success - navigate to the dashboard
+      console.log('[Auth] Login successful, user_id:', result.user_id);
+      onSignInSuccess();
+    } catch (err) {
+      const authErr = err as AuthError;
+      setErrorMessage(authErr.message || 'Login failed. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -146,7 +167,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
           </TouchableOpacity>
 
           {/* Sign In Button */}
-          <TouchableOpacity style={styles.signInBtn} onPress={handleEmailSignIn}>
+          <TouchableOpacity
+            style={[styles.signInBtn, isLoading && { opacity: 0.75 }]}
+            onPress={handleEmailSignIn}
+            disabled={isLoading}
+          >
             <LinearGradient
               colors={[colors.gradientStart, colors.gradientEnd]}
               start={{ x: 0, y: 0 }}
@@ -154,8 +179,14 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
               style={styles.gradient}
             >
               <View style={styles.btnContent}>
-                <Icon name="shield" color="#fff" size={20} />
-                <Text style={styles.btnText}>Sign In</Text>
+                {isLoading ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <>
+                    <Icon name="shield" color="#fff" size={20} />
+                    <Text style={styles.btnText}>Sign In</Text>
+                  </>
+                )}
               </View>
             </LinearGradient>
           </TouchableOpacity>
