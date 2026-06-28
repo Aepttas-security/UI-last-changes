@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { StatusBar, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { ThemeProvider } from './src/contexts/ThemeContext';
 import { colors } from './src/styles/theme';
 
 // Import Screens
@@ -14,6 +15,7 @@ import { CallerIntelligenceScreen } from './src/screens/CallerIntelligenceScreen
 import { ChildLinkScreen } from './src/screens/ChildLinkScreen';
 import { ChildModeScreen } from './src/screens/ChildModeScreen';
 import { VulnerabilityDetectionScreen } from './src/screens/VulnerabilityDetectionScreen';
+import { ChildDashboardScreen } from './src/screens/ChildDashboardScreen';
 
 type ScreenName =
   | 'Login'
@@ -25,7 +27,25 @@ type ScreenName =
   | 'CallerIntelligence'
   | 'ChildLink'
   | 'ChildMode'
-  | 'VulnerabilityDetection';
+  | 'VulnerabilityDetection'
+  | 'ChildDashboard';
+
+import { useAppTheme } from './src/contexts/ThemeContext';
+
+function AppContent({ renderScreen }: { renderScreen: () => React.ReactNode }) {
+  const { colors, mode } = useAppTheme();
+  
+  return (
+    <SafeAreaProvider>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
+        <StatusBar barStyle={mode === 'dark' ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+        <View style={styles.safeArea}>
+          {renderScreen()}
+        </View>
+      </SafeAreaView>
+    </SafeAreaProvider>
+  );
+}
 
 function App() {
   const [currentScreen, setCurrentScreen] = useState<ScreenName>('Login');
@@ -70,6 +90,7 @@ function App() {
             onOpenMalwareAnalysis={() => setCurrentScreen('MalwareAnalysis')}
             onOpenCallerIntelligence={() => setCurrentScreen('CallerIntelligence')}
             onOpenVulnerabilityDetection={() => setCurrentScreen('VulnerabilityDetection')}
+            onOpenChildDashboard={() => setCurrentScreen('ChildDashboard')}
           />
         );
       case 'GeoTracking':
@@ -82,6 +103,8 @@ function App() {
         return <CallerIntelligenceScreen onBack={() => setCurrentScreen('Dashboard')} />;
       case 'VulnerabilityDetection':
         return <VulnerabilityDetectionScreen onBack={() => setCurrentScreen('Dashboard')} />;
+      case 'ChildDashboard':
+        return <ChildDashboardScreen onBack={() => setCurrentScreen('Dashboard')} />;
       case 'ChildLink':
         return (
           <ChildLinkScreen
@@ -96,27 +119,22 @@ function App() {
           <LoginScreen
             onSignInSuccess={() => setCurrentScreen('Dashboard')}
             onSetUpChildDevice={() => setCurrentScreen('ChildLink')}
+            onGoToSignUp={() => setCurrentScreen('SignUp')}
           />
         );
     }
   };
 
   return (
-    <SafeAreaProvider>
-      <View style={styles.container}>
-        <StatusBar barStyle="light-content" backgroundColor={colors.background} />
-        <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-          {renderScreen()}
-        </SafeAreaView>
-      </View>
-    </SafeAreaProvider>
+    <ThemeProvider>
+      <AppContent renderScreen={renderScreen} />
+    </ThemeProvider>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
   },
   safeArea: {
     flex: 1,

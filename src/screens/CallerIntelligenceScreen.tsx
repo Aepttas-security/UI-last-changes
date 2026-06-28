@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Svg, { Circle, Path, G, Rect } from 'react-native-svg';
+import { useAppTheme } from '../contexts/ThemeContext';
 import { colors } from '../styles/theme';
 import { Icon } from '../components/Icon';
 
@@ -55,6 +56,9 @@ interface CallerIntelligenceScreenProps {
 }
 
 export const CallerIntelligenceScreen: React.FC<CallerIntelligenceScreenProps> = ({ onBack }) => {
+  const { colors, mode, toggleTheme } = useAppTheme();
+  const styles = React.useMemo(() => getStyles(colors), [colors]);
+
   const [activeTab, setActiveTab] = useState<number>(0);
 
   // Mock databases
@@ -183,7 +187,7 @@ export const CallerIntelligenceScreen: React.FC<CallerIntelligenceScreenProps> =
             }
           }}
         >
-          <Icon name="arrow-back" color="#fff" size={20} />
+          <Icon name="arrow-back" color={colors.text} size={20} />
         </TouchableOpacity>
         <View style={styles.headerTitleContainer}>
           <Text style={styles.headerTitle}>Caller Intelligence</Text>
@@ -970,7 +974,7 @@ export const CallerIntelligenceScreen: React.FC<CallerIntelligenceScreenProps> =
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -1002,7 +1006,7 @@ const styles = StyleSheet.create({
     marginLeft: 16,
   },
   headerTitle: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 18,
     fontWeight: 'bold',
   },
@@ -1068,7 +1072,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   gaugePct: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 18,
     fontWeight: '900',
   },
@@ -1081,7 +1085,7 @@ const styles = StyleSheet.create({
     marginLeft: 16,
   },
   gaugeInfoTitle: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 14,
     fontWeight: 'bold',
   },
@@ -1125,7 +1129,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
   },
   statWidgetValue: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 20,
     fontWeight: '900',
     marginTop: 4,
@@ -1150,7 +1154,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   alertText: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 11,
     marginLeft: 10,
     flex: 1,
@@ -1162,7 +1166,7 @@ const styles = StyleSheet.create({
     padding: 14,
   },
   actionWidgetTitle: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 12,
     fontWeight: 'bold',
     marginTop: 8,
@@ -1223,7 +1227,7 @@ const styles = StyleSheet.create({
   callScreenName: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#fff',
+    color: colors.text,
     marginTop: 16,
   },
   callScreenNumber: {
@@ -1268,7 +1272,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   searchTitle: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 15,
     fontWeight: 'bold',
   },
@@ -1288,7 +1292,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.background,
-    color: '#fff',
+    color: colors.text,
     paddingHorizontal: 12,
     fontSize: 14,
   },
@@ -1316,7 +1320,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   resultName: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 16,
     fontWeight: 'bold',
     marginTop: 8,
@@ -1356,7 +1360,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.05)',
   },
   historyName: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 14,
     fontWeight: 'bold',
   },
@@ -1390,7 +1394,7 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   blockedName: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 14,
     fontWeight: 'bold',
   },
@@ -1426,7 +1430,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   scamTitle: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 14,
     fontWeight: 'bold',
   },
@@ -1451,7 +1455,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   settingTitle: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 15,
     fontWeight: 'bold',
   },
@@ -1522,7 +1526,7 @@ const styles = StyleSheet.create({
   popupTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#fff',
+    color: colors.text,
     marginTop: 8,
     textAlign: 'center',
   },
@@ -1599,7 +1603,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.cyanAccent,
   },
   radioLabel: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 13,
   },
   reportInput: {
@@ -1609,7 +1613,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(123, 44, 191, 0.2)',
     backgroundColor: colors.background,
-    color: '#fff',
+    color: colors.text,
     paddingHorizontal: 12,
     paddingVertical: 8,
     fontSize: 13,
@@ -1617,7 +1621,7 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   resultTitle: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 14,
     fontWeight: 'bold',
     marginBottom: 8,
@@ -1690,14 +1694,14 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
   },
   adBannerSub: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 8,
     fontWeight: '500',
   },
   adMainTitle: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#fff',
+    color: colors.text,
     textAlign: 'center',
     marginBottom: 8,
   },

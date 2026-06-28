@@ -12,6 +12,7 @@ import {
   Keyboard,
   StatusBar,
 } from 'react-native';
+import { useAppTheme } from '../contexts/ThemeContext';
 import { colors } from '../styles/theme';
 import { Icon } from '../components/Icon';
 
@@ -20,6 +21,9 @@ interface ChildModeScreenProps {
 }
 
 export const ChildModeScreen: React.FC<ChildModeScreenProps> = ({ onUnlink }) => {
+  const { colors, mode, toggleTheme } = useAppTheme();
+  const styles = React.useMemo(() => getStyles(colors), [colors]);
+
   const [sosActive, setSosActive] = useState(false);
   const [sosCountdown, setSosCountdown] = useState(5);
   const [showUnlinkModal, setShowUnlinkModal] = useState(false);
@@ -163,7 +167,7 @@ export const ChildModeScreen: React.FC<ChildModeScreenProps> = ({ onUnlink }) =>
             style={[styles.sosButton, { backgroundColor: sosActive ? colors.redDanger : colors.purpleAccent }]}
             onPress={() => setSosActive(!sosActive)}
           >
-            <Icon name={sosActive ? 'warning' : 'share'} color="#fff" size={36} />
+            <Icon name={sosActive ? 'warning' : 'share'} color={colors.text} size={36} />
             <Text style={styles.sosButtonText}>
               {sosActive ? 'SOS ACTIVE' : 'EMERGENCY\nSOS'}
             </Text>
@@ -263,7 +267,7 @@ export const ChildModeScreen: React.FC<ChildModeScreenProps> = ({ onUnlink }) =>
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -298,7 +302,7 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   headerTitle: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 15,
     fontWeight: 'bold',
   },
@@ -331,7 +335,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   cardHeaderActive: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 13,
     fontWeight: 'bold',
     letterSpacing: 0.5,
@@ -344,7 +348,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   timeLeftText: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 24,
     fontWeight: '800',
   },
@@ -417,7 +421,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   policyLabel: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 12,
     marginLeft: 8,
   },
@@ -466,7 +470,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   modalTitle: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -484,7 +488,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.background,
-    color: '#fff',
+    color: colors.text,
     fontSize: 18,
     textAlign: 'center',
     letterSpacing: 8,

@@ -28,7 +28,7 @@ interface ChildProfile {
   appUsage: { name: string; time: string; color: string }[];
 }
 
-interface ParentalControlScreenProps {
+interface ChildDashboardScreenProps {
   onBack: () => void;
 }
 
@@ -66,7 +66,7 @@ const initialProfiles: ChildProfile[] = [
   }
 ];
 
-export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ onBack }) => {
+export const ChildDashboardScreen: React.FC<ChildDashboardScreenProps> = ({ onBack }) => {
   const { colors, mode, toggleTheme } = useAppTheme();
   const styles = React.useMemo(() => getStyles(colors), [colors]);
 
@@ -270,7 +270,7 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
     removeBlacklistUrl(url);
   };
 
-  const tabs = ['Overview', 'Limits', 'Apps', 'Filter', 'Location', 'Reports', 'Alerts', 'SOS', 'Link'];
+  const tabs = ['Overview', 'Reports'];
 
   // Circular progress math
   const radius = 50;
@@ -331,7 +331,7 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
           <Icon name="arrow-back" color={colors.text} size={20} />
         </TouchableOpacity>
         <View style={styles.headerTitleContainer}>
-          <Text style={styles.headerTitle}>Parental Control Shield</Text>
+          <Text style={styles.headerTitle}>Child Dashboard</Text>
           <Text style={styles.headerSubtitle}>Manage and protect child devices</Text>
         </View>
       </View>

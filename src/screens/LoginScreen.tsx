@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Svg, { Path, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
+import { useAppTheme } from '../contexts/ThemeContext';
 import { colors } from '../styles/theme';
 import { Icon } from '../components/Icon';
 import { loginUser, AuthError } from '../data/authRepository';
@@ -29,6 +30,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   onGoToSignUp,
   signUpSuccessMessage,
 }) => {
+  const { colors, mode, toggleTheme } = useAppTheme();
+  const styles = React.useMemo(() => getStyles(colors), [colors]);
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordVisible, setPasswordVisible] = useState(false);
@@ -106,7 +110,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
             {/* Core icon */}
             <Path
               d="M45,60 L35,50 L39,46 L45,52 L61,36 L65,40 Z"
-              fill="#ffffff"
+              fill={colors.text}
             />
           </Svg>
         </View>
@@ -227,15 +231,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity style={styles.childSetupBtn} onPress={onSetUpChildDevice}>
-          <Text style={styles.childSetupText}>Set up this device as a Child Device</Text>
-        </TouchableOpacity>
       </ScrollView>
     </View>
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,

@@ -10,6 +10,7 @@ import {
   StatusBar,
 } from 'react-native';
 import Svg, { Line, Circle } from 'react-native-svg';
+import { useAppTheme } from '../contexts/ThemeContext';
 import { colors } from '../styles/theme';
 import { Icon } from '../components/Icon';
 
@@ -78,6 +79,9 @@ const getNearbyPlaces = (ip: string): NearbyPlace[] => {
 };
 
 export const GeoTrackingScreen: React.FC<GeoTrackingScreenProps> = ({ onBack }) => {
+  const { colors, mode, toggleTheme } = useAppTheme();
+  const styles = React.useMemo(() => getStyles(colors), [colors]);
+
   const [selectedFilter, setSelectedFilter] = useState<'All' | '1H' | '24H' | '7D'>('All');
   const [selectedRequest, setSelectedRequest] = useState<GeoRequest | null>(allRequests[1]); // Default to Amsterdam
 
@@ -179,7 +183,7 @@ export const GeoTrackingScreen: React.FC<GeoTrackingScreenProps> = ({ onBack }) 
       {/* 1. TOP HEADER APP BAR WITH BACK BUTTON */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={onBack}>
-          <Icon name="arrow-back" color="#fff" size={20} />
+          <Icon name="arrow-back" color={colors.text} size={20} />
         </TouchableOpacity>
         <View style={styles.headerTitleContainer}>
           <Text style={styles.headerTitle}>API Geolocation Tracker</Text>
@@ -501,7 +505,7 @@ export const GeoTrackingScreen: React.FC<GeoTrackingScreenProps> = ({ onBack }) 
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -533,7 +537,7 @@ const styles = StyleSheet.create({
     marginLeft: 16,
   },
   headerTitle: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 18,
     fontWeight: 'bold',
   },
@@ -610,7 +614,7 @@ const styles = StyleSheet.create({
   },
   markerDotSelected: {
     borderWidth: 1.5,
-    borderColor: '#fff',
+    borderColor: colors.text,
     width: 12,
     height: 12,
     borderRadius: 6,
@@ -651,7 +655,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   ipText: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 16,
     fontWeight: 'bold',
     marginLeft: 8,
@@ -697,13 +701,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   detailsValue: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 13,
     fontWeight: '500',
     marginLeft: 4,
   },
   listTitle: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 14,
     fontWeight: 'bold',
     marginHorizontal: 24,
@@ -740,7 +744,7 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   logIp: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 13,
     fontWeight: 'bold',
   },
@@ -776,7 +780,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   nearbyPlaceName: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 12,
     marginLeft: 6,
   },

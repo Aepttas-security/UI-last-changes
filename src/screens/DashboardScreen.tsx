@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Svg, { Circle, Line, Path, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
+import { useAppTheme } from '../contexts/ThemeContext';
 import { colors } from '../styles/theme';
 import { Icon } from '../components/Icon';
 
@@ -22,6 +23,7 @@ interface DashboardScreenProps {
   onOpenMalwareAnalysis: () => void;
   onOpenCallerIntelligence: () => void;
   onOpenVulnerabilityDetection: () => void;
+  onOpenChildDashboard: () => void;
 }
 
 export const DashboardScreen: React.FC<DashboardScreenProps> = ({
@@ -31,7 +33,11 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
   onOpenMalwareAnalysis,
   onOpenCallerIntelligence,
   onOpenVulnerabilityDetection,
+  onOpenChildDashboard,
 }) => {
+  const { colors, mode, toggleTheme } = useAppTheme();
+  const styles = React.useMemo(() => getStyles(colors), [colors]);
+
   const [activeTab, setActiveTab] = useState('Home');
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [profileView, setProfileView] = useState<'menu' | 'info' | 'settings' | 'subscription' | 'orders'>('menu');
@@ -75,7 +81,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
                 />
                 <Path
                   d="M45,60 L35,50 L39,46 L45,52 L61,36 L65,40 Z"
-                  fill="#ffffff"
+                  fill={colors.text}
                 />
               </Svg>
             </View>
@@ -90,13 +96,13 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
           <View style={styles.headerRight}>
             {/* Notification Bell */}
             <TouchableOpacity style={styles.bellButton} onPress={onSignOut}>
-              <Icon name="notifications" color="#fff" size={20} />
+              <Icon name="notifications" color={colors.text} size={20} />
               <View style={styles.redDot} />
             </TouchableOpacity>
 
             {/* Profile Icon */}
             <TouchableOpacity style={styles.profileButton} onPress={() => { setProfileView('menu'); setShowProfileModal(true); }}>
-              <Icon name="person" color="#fff" size={20} />
+              <Icon name="person" color={colors.text} size={20} />
             </TouchableOpacity>
           </View>
         </View>
@@ -216,11 +222,11 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
         </View>
 
         <View style={[styles.gridRow, { marginTop: 12 }]}>
-          <TouchableOpacity style={styles.gridItem}>
+          <TouchableOpacity style={styles.gridItem} onPress={onOpenChildDashboard}>
             <View style={[styles.gridIconBg, { backgroundColor: colors.purpleAccent + '1E' }]}>
-              <Icon name="lock" color={colors.purpleAccent} size={20} />
+              <Icon name="child-care" color={colors.purpleAccent} size={20} />
             </View>
-            <Text style={styles.gridLabel}>DLP Protection</Text>
+            <Text style={styles.gridLabel}>Child Dashboard</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.gridItem} onPress={onOpenGeoTracking}>
@@ -272,7 +278,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
             </View>
 
             <TouchableOpacity style={styles.aiArrowBtn}>
-              <Icon name="arrow-forward" color="#fff" size={16} />
+              <Icon name="arrow-forward" color={colors.text} size={16} />
             </TouchableOpacity>
           </View>
         </View>
@@ -337,7 +343,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
           <View style={styles.modalContent}>
             {/* Close X Button */}
             <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setShowProfileModal(false)}>
-              <Icon name="close" color="#fff" size={16} />
+              <Icon name="close" color={colors.text} size={16} />
             </TouchableOpacity>
 
             {profileView === 'menu' ? (
@@ -385,13 +391,13 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
             ) : profileView === 'info' ? (
               <>
                 <TouchableOpacity style={styles.modalBackBtn} onPress={() => setProfileView('menu')}>
-                  <Icon name="arrow-back" color="#fff" size={16} />
+                  <Icon name="arrow-back" color={colors.text} size={16} />
                 </TouchableOpacity>
 
                 <View style={styles.profileHeader}>
                   <View style={styles.profileAvatarContainer}>
                     <View style={styles.profileAvatarBg}>
-                      <Icon name="person" color="#fff" size={40} />
+                      <Icon name="person" color={colors.text} size={40} />
                     </View>
                     <TouchableOpacity style={styles.editAvatarBtn} onPress={() => showToast('Edit photo feature coming soon.')}>
                       <Icon name="edit" color="#000" size={14} />
@@ -417,12 +423,18 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
             ) : profileView === 'settings' ? (
               <>
                 <TouchableOpacity style={styles.modalBackBtn} onPress={() => setProfileView('menu')}>
-                  <Icon name="arrow-back" color="#fff" size={16} />
+                  <Icon name="arrow-back" color={colors.text} size={16} />
                 </TouchableOpacity>
 
                 <Text style={styles.menuTitle}>Settings</Text>
 
                 <ScrollView style={styles.menuOptionsContainer} showsVerticalScrollIndicator={false}>
+                  {/* Theme Toggle */}
+                  <TouchableOpacity style={styles.menuOptionBtn} onPress={toggleTheme}>
+                    <Text style={styles.menuOptionText}>Dark/Light Mode</Text>
+                    <Icon name={mode === 'dark' ? 'light-mode' : 'dark-mode'} color={colors.cyanAccent} size={16} />
+                  </TouchableOpacity>
+
                   {['Account', 'Password', 'Change Password', 'Email', 'Change Email', 'Language'].map((settingItem, idx) => (
                     <TouchableOpacity key={idx} style={styles.menuOptionBtn} onPress={() => showToast(`${settingItem} settings coming soon.`)}>
                       <Text style={styles.menuOptionText}>{settingItem}</Text>
@@ -440,7 +452,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
             ) : profileView === 'subscription' ? (
               <>
                 <TouchableOpacity style={styles.modalBackBtn} onPress={() => setProfileView('menu')}>
-                  <Icon name="arrow-back" color="#fff" size={16} />
+                  <Icon name="arrow-back" color={colors.text} size={16} />
                 </TouchableOpacity>
 
                 <View style={styles.subHeader}>
@@ -493,7 +505,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
             ) : (
               <>
                 <TouchableOpacity style={styles.modalBackBtn} onPress={() => setProfileView('menu')}>
-                  <Icon name="arrow-back" color="#fff" size={16} />
+                  <Icon name="arrow-back" color={colors.text} size={16} />
                 </TouchableOpacity>
 
                 <Text style={styles.menuTitle}>Orders & Payments</Text>
@@ -529,7 +541,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -588,7 +600,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -681,12 +693,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   profileValue: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 14,
     fontWeight: 'bold',
   },
   menuTitle: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 20,
@@ -701,14 +713,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 14,
     paddingHorizontal: 16,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: colors.cardBackgroundLight,
     borderRadius: 12,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: colors.border,
   },
   menuOptionText: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 15,
     fontWeight: '600',
     flex: 1,
@@ -721,7 +733,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: colors.cardBackgroundLight,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 10,
@@ -761,7 +773,7 @@ const styles = StyleSheet.create({
     marginVertical: 2,
   },
   protectedText: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 20,
     fontWeight: '900',
     letterSpacing: 0.5,
@@ -785,7 +797,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   scoreBig: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 32,
     fontWeight: 'bold',
   },
@@ -821,7 +833,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   statValue: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 15,
     fontWeight: 'bold',
     marginTop: 8,
@@ -845,7 +857,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitle: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 18,
     fontWeight: 'bold',
   },
@@ -879,7 +891,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   gridLabel: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 10,
     fontWeight: '500',
     textAlign: 'center',
@@ -887,7 +899,7 @@ const styles = StyleSheet.create({
   },
   aiCard: {
     width: '100%',
-    backgroundColor: '#080d1a',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 20,
@@ -901,7 +913,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   aiTitle: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -920,7 +932,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#1e293b',
+    backgroundColor: colors.cardBackgroundLight,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -946,7 +958,7 @@ const styles = StyleSheet.create({
     marginLeft: 14,
   },
   activityTitle: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 14,
     fontWeight: 'bold',
   },
@@ -1015,9 +1027,9 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     borderRadius: 20,
-    backgroundColor: '#07051f',
+    backgroundColor: colors.cardBackground,
     borderWidth: 1,
-    borderColor: '#ffd900', // simulated gold/blue gradient border
+    borderColor: '#ffd900',
     padding: 20,
     alignItems: 'center',
     position: 'relative',
@@ -1032,7 +1044,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: colors.cardBackgroundLight,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 10,
@@ -1054,7 +1066,7 @@ const styles = StyleSheet.create({
   subMainTitle: {
     fontSize: 18,
     fontWeight: '900',
-    color: '#fff',
+    color: colors.text,
     textAlign: 'center',
     marginBottom: 6,
   },
@@ -1108,7 +1120,7 @@ const styles = StyleSheet.create({
   planName: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#fff',
+    color: colors.text,
   },
   planPrice: {
     fontSize: 14,

@@ -9,6 +9,7 @@ import {
   StatusBar,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import { useAppTheme } from '../contexts/ThemeContext';
 import { colors } from '../styles/theme';
 import { Icon } from '../components/Icon';
 
@@ -21,6 +22,9 @@ export const ChildLinkScreen: React.FC<ChildLinkScreenProps> = ({
   onBack,
   onLinkSuccess,
 }) => {
+  const { colors, mode, toggleTheme } = useAppTheme();
+  const styles = React.useMemo(() => getStyles(colors), [colors]);
+
   const [childName, setChildName] = useState('');
   const [parentEmail, setParentEmail] = useState('');
   const [pairingCode, setPairingCode] = useState('');
@@ -50,7 +54,7 @@ export const ChildLinkScreen: React.FC<ChildLinkScreenProps> = ({
       {/* Back button and header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={onBack}>
-          <Icon name="arrow-back" color="#fff" size={20} />
+          <Icon name="arrow-back" color={colors.text} size={20} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Link Child Device</Text>
       </View>
@@ -125,7 +129,7 @@ export const ChildLinkScreen: React.FC<ChildLinkScreenProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -152,7 +156,7 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   headerTitle: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 18,
     fontWeight: 'bold',
   },
@@ -172,7 +176,7 @@ const styles = StyleSheet.create({
     marginBottom: 28,
   },
   infoTitle: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 15,
     fontWeight: 'bold',
   },
