@@ -1,12 +1,7 @@
-import { Platform } from 'react-native';
 
 // Parental Control Backend running on port 8002
-// On Android Emulator: 10.0.2.2 → your computer's localhost
-// On physical device: replace with your machine's local IP (e.g. http://192.168.x.x:8002)
-const AUTH_BASE_URL =
-  Platform.OS === 'android'
-    ? 'http://10.0.2.2:8002'
-    : 'http://localhost:8002';
+// PC Local IP: 192.168.29.107 — physical device must be on same WiFi
+const AUTH_BASE_URL = 'http://192.168.29.107:8002';
 
 export interface LoginPayload {
   email: string;
