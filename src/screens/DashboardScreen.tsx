@@ -176,29 +176,6 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
           </View>
         </View>
 
-        {/* 3.5. NEW SUMMARY CARDS */}
-        <View style={styles.summaryCardsRow}>
-          <TouchableOpacity style={styles.summaryCard} onPress={onOpenVulnerabilityDetection}>
-            <View style={[styles.summaryCardIconBg, { backgroundColor: colors.redDanger + '1E' }]}>
-              <Icon name="inventory" color={colors.redDanger} size={18} />
-            </View>
-            <View style={styles.summaryCardTextContainer}>
-              <Text style={styles.summaryCardValue}>2</Text>
-              <Text style={styles.summaryCardTitle} numberOfLines={1}>Quarantined Apps</Text>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.summaryCard} onPress={onOpenVulnerabilityDetection}>
-            <View style={[styles.summaryCardIconBg, { backgroundColor: colors.orangeWarning + '1E' }]}>
-              <Icon name="warning" color={colors.orangeWarning} size={18} />
-            </View>
-            <View style={styles.summaryCardTextContainer}>
-              <Text style={styles.summaryCardValue}>3</Text>
-              <Text style={styles.summaryCardTitle} numberOfLines={1}>Outdated Apps</Text>
-            </View>
-          </TouchableOpacity>
-        </View>
-
         {/* 4. QUICK ACTIONS SECTION HEADER */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
@@ -1150,45 +1127,5 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#6b6e85',
     fontWeight: '600',
-  },
-  summaryCardsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    marginTop: 16,
-    width: '100%',
-  },
-  summaryCard: {
-    flex: 1,
-    backgroundColor: colors.cardBackground,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 14,
-    padding: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: 4,
-  },
-  summaryCardTextContainer: {
-    marginLeft: 12,
-    flex: 1,
-  },
-  summaryCardValue: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  summaryCardTitle: {
-    color: colors.textMuted,
-    fontSize: 11,
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  summaryCardIconBg: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
 });
