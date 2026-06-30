@@ -419,9 +419,12 @@ export const ChildDashboardScreen: React.FC<ChildDashboardScreenProps> = ({ onBa
                   </Text>
                 </View>
               </View>
-              <View style={[styles.checkCircleBg, { backgroundColor: deviceLocked ? colors.redDanger + '15' : colors.greenSuccess + '15' }]}>
-                <Icon name={deviceLocked ? 'error-outline' : 'check-circle'} color={deviceLocked ? colors.redDanger : colors.greenSuccess} size={18} />
-              </View>
+              <Switch
+                value={deviceLocked}
+                onValueChange={(val) => changeDeviceLock(val)}
+                trackColor={{ true: colors.redDanger, false: colors.greenSuccess }}
+                thumbColor="#fff"
+              />
             </View>
 
             {/* 2. Dashboard Cards Grid */}
@@ -511,15 +514,33 @@ export const ChildDashboardScreen: React.FC<ChildDashboardScreenProps> = ({ onBa
               </View>
             </View>
 
-            {/* 3. Remote Lock Button Action Card */}
+            {/* 3. Emergency SOS Help Card */}
             <TouchableOpacity
-              style={[styles.remoteLockBtn, { backgroundColor: deviceLocked ? colors.greenSuccess : colors.redDanger }]}
-              onPress={() => changeDeviceLock(!deviceLocked)}
+              style={styles.emergencyHelpCard}
+              onPress={() => setActiveTab('Reports')}
             >
-              <Icon name={deviceLocked ? 'lock-open' : 'lock'} color="#fff" size={18} />
-              <Text style={styles.remoteLockBtnText}>
-                {deviceLocked ? 'Unlock Child Device Now' : 'Lock Child Device Remotely'}
-              </Text>
+              <View style={styles.emergencyHelpLeft}>
+                {/* SOS Button Area */}
+                <View style={styles.sosButtonIndicatorContainer}>
+                  <View style={[styles.sosButtonIndicator, { backgroundColor: colors.redDanger }]}>
+                    <Text style={styles.sosButtonIndicatorText}>SOS</Text>
+                  </View>
+                </View>
+
+                {/* Emergency Help Texts */}
+                <View style={styles.emergencyHelpTexts}>
+                  <Text style={styles.emergencyHelpTitle}>Emergency Help</Text>
+                  <Text style={styles.emergencyHelpSubtitle}>
+                    {sosActive ? 'DISTRESS BROADCASTING' : 'NO ACTIVE ALERTS'}
+                  </Text>
+                  <Text style={styles.emergencyHelpDesc}>
+                    {sosActive 
+                      ? 'Distress alarm and child location tracking coordinates received.' 
+                      : 'Emergency alert status of your child will be shown here.'}
+                  </Text>
+                </View>
+              </View>
+              <Icon name="chevron-right" color={colors.textMuted} size={18} />
             </TouchableOpacity>
           </View>
         )}
@@ -1313,21 +1334,64 @@ const getStyles = (colors: any) => StyleSheet.create({
     marginLeft: 4,
     fontWeight: '600',
   },
-  remoteLockBtn: {
+  emergencyHelpCard: {
     flexDirection: 'row',
-    width: '100%',
-    height: 48,
-    borderRadius: 10,
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 20,
+    padding: 16,
     marginTop: 20,
     marginBottom: 20,
+    width: '100%',
   },
-  remoteLockBtnText: {
+  emergencyHelpLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  sosButtonIndicatorContainer: {
+    position: 'relative',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 68,
+    height: 68,
+  },
+  sosButtonIndicator: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  sosButtonIndicatorText: {
     color: '#fff',
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  emergencyHelpTexts: {
+    marginLeft: 16,
+    flex: 1,
+  },
+  emergencyHelpTitle: {
+    color: colors.text,
+    fontSize: 15,
     fontWeight: 'bold',
-    fontSize: 14,
-    marginLeft: 8,
+  },
+  emergencyHelpSubtitle: {
+    color: colors.redDanger,
+    fontSize: 10,
+    fontWeight: 'bold',
+    marginTop: 2,
+  },
+  emergencyHelpDesc: {
+    color: colors.textMuted,
+    fontSize: 11,
+    marginTop: 4,
+    lineHeight: 14,
   },
   blockSectionTitle: {
     color: colors.text,
