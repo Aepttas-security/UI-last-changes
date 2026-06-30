@@ -403,103 +403,124 @@ export const ChildDashboardScreen: React.FC<ChildDashboardScreenProps> = ({ onBa
       <ScrollView contentContainerStyle={styles.viewContent}>
         {activeTab === 'Overview' && (
           <View style={{ width: '100%' }}>
-            {/* Status Card */}
-            <View style={styles.deviceStatusCard}>
-              <View style={styles.deviceStatusRow}>
-                <View
-                  style={[
-                    styles.statusDot,
-                    { backgroundColor: deviceLocked ? colors.redDanger : colors.greenSuccess },
-                  ]}
-                />
-                <View style={styles.deviceStatusTexts}>
-                  <Text style={styles.statusTitle}>
-                    {deviceLocked ? 'Device Blocked (Locked)' : 'Device Active Online'}
+            {/* 1. System Status Card */}
+            <View style={styles.systemStatusCard}>
+              <View style={styles.systemStatusLeft}>
+                <View style={[styles.shieldIconBg, { backgroundColor: deviceLocked ? colors.redDanger + '15' : colors.greenSuccess + '15' }]}>
+                  <Icon name={deviceLocked ? 'lock' : 'shield'} color={deviceLocked ? colors.redDanger : colors.greenSuccess} size={28} />
+                </View>
+                <View style={styles.systemStatusTextContainer}>
+                  <Text style={styles.systemStatusLabel}>SYSTEM STATUS</Text>
+                  <Text style={[styles.systemStatusValue, deviceLocked && { color: colors.redDanger }]}>
+                    {deviceLocked ? 'LOCKED' : 'SECURE'}
                   </Text>
-                  <Text style={styles.statusSub}>
-                    {activeChild.deviceName} • Battery: {activeChild.batteryLevel}%
+                  <Text style={styles.systemStatusDesc}>
+                    {deviceLocked ? 'Device remotely locked by Parent' : 'All protection services are active'}
                   </Text>
                 </View>
               </View>
-              <Icon
-                name={activeChild.batteryLevel > 80 ? 'battery-full' : 'battery-alert'}
-                color={activeChild.batteryLevel > 20 ? colors.greenSuccess : colors.redDanger}
-                size={22}
-              />
+              <View style={[styles.checkCircleBg, { backgroundColor: deviceLocked ? colors.redDanger + '15' : colors.greenSuccess + '15' }]}>
+                <Icon name={deviceLocked ? 'error-outline' : 'check-circle'} color={deviceLocked ? colors.redDanger : colors.greenSuccess} size={18} />
+              </View>
             </View>
 
-            {/* Screen Time Ring */}
-            <View style={styles.overviewGaugeCard}>
-              <Text style={styles.gaugeHeader}>DAILY SCREEN TIME</Text>
-              <View style={styles.overviewGaugeContainer}>
-                <Svg width={150} height={150} viewBox="0 0 120 120">
-                  <G rotation="135" origin="60, 60">
+            {/* 2. Dashboard Cards Grid */}
+            <View style={styles.dashboardGrid}>
+              {/* Card 1: Daily Screen Time */}
+              <View style={styles.timeCard}>
+                <View style={styles.cardHeaderRow}>
+                  <Icon name="schedule" color={colors.purpleAccent} size={20} />
+                  <Text style={styles.cardHeaderTitle}>Daily Screen Time</Text>
+                </View>
+                <View style={styles.circleContainer}>
+                  <Svg width={110} height={110} viewBox="0 0 100 100">
+                    <Circle cx="50" cy="50" r="40" stroke={colors.border} strokeWidth="8" fill="none" />
                     <Circle
-                      cx="60"
-                      cy="60"
-                      r={radius}
-                      stroke={colors.border}
-                      strokeWidth={strokeWidth}
-                      fill="none"
-                      strokeDasharray={`${(270 / 360) * circumference} ${circumference}`}
-                      strokeLinecap="round"
-                    />
-                    <Circle
-                      cx="60"
-                      cy="60"
-                      r={radius}
+                      cx="50"
+                      cy="50"
+                      r="40"
                       stroke={colors.pinkAccent}
-                      strokeWidth={strokeWidth}
+                      strokeWidth="8"
                       fill="none"
-                      strokeDasharray={circumference}
-                      strokeDashoffset={strokeDashoffset}
                       strokeLinecap="round"
+                      strokeDasharray={`${2 * Math.PI * 40}`}
+                      strokeDashoffset={`${2 * Math.PI * 40 * (1 - Math.min(1, activeChild.currentUsageMinutes / currentLimitMinutes))}`}
+                      transform="rotate(-90 50 50)"
                     />
-                  </G>
-                </Svg>
-                <View style={styles.overviewGaugeTexts}>
-                  <Text style={styles.usageHourText}>
-                    {Math.floor(activeChild.currentUsageMinutes / 60)}h{' '}
-                    {activeChild.currentUsageMinutes % 60}m
-                  </Text>
-                  <Text style={styles.limitLabelText}>of {currentLimitMinutes / 60}h limit</Text>
+                  </Svg>
+                  <View style={styles.circleTextContainer}>
+                    <Text style={styles.circleMainText}>
+                      {Math.floor(activeChild.currentUsageMinutes / 60)}h {activeChild.currentUsageMinutes % 60}m
+                    </Text>
+                    <Text style={styles.circleSubText}>of {currentLimitMinutes / 60}h limit</Text>
+                  </View>
                 </View>
               </View>
 
-              <TouchableOpacity
-                style={[styles.remoteLockBtn, { backgroundColor: deviceLocked ? colors.greenSuccess : colors.redDanger }]}
-                onPress={() => changeDeviceLock(!deviceLocked)}
-              >
-                <Icon name={deviceLocked ? 'lock-open' : 'lock'} color={colors.text} size={18} />
-                <Text style={styles.remoteLockBtnText}>
-                  {deviceLocked ? 'Unlock Child Device Now' : 'Lock Child Device Remotely'}
+              {/* Card 2: Apps Used Today */}
+              <View style={styles.appsCard}>
+                <View style={styles.cardHeaderRow}>
+                  <Icon name="apps" color={colors.blueAccent} size={20} />
+                  <Text style={styles.cardHeaderTitle}>Apps Used Today</Text>
+                </View>
+                <View style={styles.appsList}>
+                  {(activeChild.appUsage || []).slice(0, 3).map((usage: any, idx: number) => {
+                    const badgeBg = idx === 0 ? '#ef4444' : idx === 1 ? '#3b82f6' : '#22c55e';
+                    const iconName = idx === 0 ? 'play-arrow' : idx === 1 ? 'public' : 'chat';
+                    return (
+                      <View key={usage.name} style={styles.appRowItem}>
+                        <View style={styles.appRowLeft}>
+                          <View style={[styles.appBadge, { backgroundColor: badgeBg }]}>
+                            <Icon name={iconName} color="#fff" size={14} />
+                          </View>
+                          <Text style={styles.appRowName} numberOfLines={1}>{usage.name}</Text>
+                        </View>
+                        <Text style={styles.appRowTime}>{usage.time}</Text>
+                      </View>
+                    );
+                  })}
+                  <TouchableOpacity onPress={() => setActiveTab('Reports')}>
+                    <Text style={styles.viewAllLink}>View all &gt;</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Card 3: Notifications Today */}
+              <View style={styles.statGridCard}>
+                <View style={styles.statCardHeader}>
+                  <Icon name="notifications" color={colors.purpleAccent} size={20} />
+                  <Text style={styles.statCardTitle}>Notifications Today</Text>
+                </View>
+                <Text style={styles.statCardValue}>18</Text>
+                <Text style={styles.statCardSub}>Total Notifications</Text>
+              </View>
+
+              {/* Card 4: Battery */}
+              <View style={styles.statGridCard}>
+                <View style={styles.statCardHeader}>
+                  <Icon name="battery-charging-full" color={colors.greenSuccess} size={20} />
+                  <Text style={styles.statCardTitle}>Battery</Text>
+                </View>
+                <Text style={[styles.statCardValue, { color: colors.greenSuccess }]}>
+                  {activeChild.batteryLevel}%
                 </Text>
-              </TouchableOpacity>
+                <View style={styles.batterySubRow}>
+                  <Icon name="flash-on" color={colors.greenSuccess} size={12} />
+                  <Text style={styles.batterySubText}>Charging</Text>
+                </View>
+              </View>
             </View>
 
-            {/* App Usage List */}
-            <Text style={styles.blockSectionTitle}>Most Used Apps Today</Text>
-            {(activeChild.appUsage || []).map((usage: any) => (
-              <View key={usage.name} style={styles.usageRow}>
-                <View style={styles.usageLeft}>
-                  <View style={[styles.appIconContainer, { backgroundColor: usage.color + '22' }]}>
-                    <Icon
-                      name={
-                        usage.name === 'Roblox' || usage.name === 'Minecraft'
-                          ? 'gamepad'
-                          : usage.name.includes('YouTube')
-                          ? 'play-circle'
-                          : 'globe'
-                      }
-                      color={usage.color}
-                      size={20}
-                    />
-                  </View>
-                  <Text style={styles.appName}>{usage.name}</Text>
-                </View>
-                <Text style={styles.appDuration}>{usage.time}</Text>
-              </View>
-            ))}
+            {/* 3. Remote Lock Button Action Card */}
+            <TouchableOpacity
+              style={[styles.remoteLockBtn, { backgroundColor: deviceLocked ? colors.greenSuccess : colors.redDanger }]}
+              onPress={() => changeDeviceLock(!deviceLocked)}
+            >
+              <Icon name={deviceLocked ? 'lock-open' : 'lock'} color="#fff" size={18} />
+              <Text style={styles.remoteLockBtnText}>
+                {deviceLocked ? 'Unlock Child Device Now' : 'Lock Child Device Remotely'}
+              </Text>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -1102,78 +1123,195 @@ const getStyles = (colors: any) => StyleSheet.create({
     paddingVertical: 16,
     alignItems: 'center',
   },
-  deviceStatusCard: {
+  systemStatusCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: colors.cardBackground,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 16,
+    marginBottom: 20,
     width: '100%',
   },
-  deviceStatusRow: {
+  systemStatusLeft: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
-  statusDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  deviceStatusTexts: {
-    marginLeft: 10,
-  },
-  statusTitle: {
-    color: colors.text,
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  statusSub: {
-    color: colors.textMuted,
-    fontSize: 11,
-    marginTop: 2,
-  },
-  overviewGaugeCard: {
-    width: '100%',
-    borderRadius: 20,
-    backgroundColor: colors.cardBackground,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: 20,
-    alignItems: 'center',
-    marginTop: 16,
-  },
-  gaugeHeader: {
-    color: colors.textMuted,
-    fontSize: 11,
-    fontWeight: 'bold',
-    letterSpacing: 1,
-  },
-  overviewGaugeContainer: {
-    position: 'relative',
-    width: 150,
-    height: 150,
+  shieldIconBg: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    marginVertical: 16,
   },
-  overviewGaugeTexts: {
-    position: 'absolute',
-    alignItems: 'center',
+  systemStatusTextContainer: {
+    marginLeft: 16,
+    flex: 1,
   },
-  usageHourText: {
-    color: colors.text,
-    fontSize: 28,
-    fontWeight: '900',
+  systemStatusLabel: {
+    color: colors.textMuted,
+    fontSize: 10,
+    fontWeight: 'bold',
+    letterSpacing: 0.5,
   },
-  limitLabelText: {
+  systemStatusValue: {
+    color: colors.greenSuccess,
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginTop: 2,
+  },
+  systemStatusDesc: {
     color: colors.textMuted,
     fontSize: 12,
     marginTop: 2,
+  },
+  checkCircleBg: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dashboardGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+    width: '100%',
+  },
+  timeCard: {
+    width: '48%',
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 20,
+    padding: 16,
+    alignItems: 'center',
+  },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    marginBottom: 12,
+  },
+  cardHeaderTitle: {
+    color: colors.text,
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginLeft: 8,
+  },
+  circleContainer: {
+    position: 'relative',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 110,
+    height: 110,
+  },
+  circleTextContainer: {
+    position: 'absolute',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  circleMainText: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  circleSubText: {
+    color: colors.textMuted,
+    fontSize: 9,
+    marginTop: 2,
+  },
+  appsCard: {
+    width: '48%',
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 20,
+    padding: 16,
+  },
+  appsList: {
+    marginTop: 8,
+  },
+  appRowItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  appRowLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  appBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  appRowName: {
+    color: colors.text,
+    fontSize: 11,
+    fontWeight: '600',
+    marginLeft: 8,
+    flex: 1,
+  },
+  appRowTime: {
+    color: colors.textMuted,
+    fontSize: 11,
+  },
+  viewAllLink: {
+    color: colors.purpleAccent,
+    fontSize: 11,
+    fontWeight: '600',
+    textAlign: 'right',
+    marginTop: 8,
+  },
+  statGridCard: {
+    width: '48%',
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 20,
+    padding: 16,
+    marginTop: 16,
+  },
+  statCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  statCardTitle: {
+    color: colors.textMuted,
+    fontSize: 11,
+    fontWeight: 'bold',
+    marginLeft: 8,
+  },
+  statCardValue: {
+    color: colors.text,
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginVertical: 4,
+  },
+  statCardSub: {
+    color: colors.textMuted,
+    fontSize: 11,
+  },
+  batterySubRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  batterySubText: {
+    color: colors.greenSuccess,
+    fontSize: 11,
+    marginLeft: 4,
+    fontWeight: '600',
   },
   remoteLockBtn: {
     flexDirection: 'row',
@@ -1182,6 +1320,8 @@ const getStyles = (colors: any) => StyleSheet.create({
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
+    marginTop: 20,
+    marginBottom: 20,
   },
   remoteLockBtnText: {
     color: '#fff',
@@ -1196,35 +1336,6 @@ const getStyles = (colors: any) => StyleSheet.create({
     marginTop: 24,
     marginBottom: 12,
     alignSelf: 'flex-start',
-  },
-  usageRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    width: '100%',
-    paddingVertical: 6,
-  },
-  usageLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  appIconContainer: {
-    width: 38,
-    height: 38,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  appName: {
-    color: colors.text,
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginLeft: 12,
-  },
-  appDuration: {
-    color: colors.text,
-    fontSize: 14,
-    fontWeight: '500',
   },
   settingCard: {
     width: '100%',
