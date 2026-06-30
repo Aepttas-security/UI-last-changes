@@ -1641,6 +1641,7 @@ const getStyles = (colors: any) => StyleSheet.create({
     alignItems: 'center',
   },
   categoryNameText: {
+    color: colors.text,
     fontSize: 15,
     fontWeight: '500',
     marginLeft: 16,
