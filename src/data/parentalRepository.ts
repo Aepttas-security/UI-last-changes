@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 
-const BASE_URL = Platform.OS === 'android' ? 'http://10.0.2.2:8002' : 'http://localhost:8002';
+const BASE_URL = 'http://192.168.29.107:8002';
 const AUTH_HEADER = {
   'Authorization': 'Bearer mock_secure_jwt_token_for_1',
   'Content-Type': 'application/json',

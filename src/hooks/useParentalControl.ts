@@ -169,7 +169,7 @@ export function useParentalControl() {
    */
   const syncLocalToState = useCallback((profileId: string) => {
     const targetId = profileId || localChildrenRef.current[0].id;
-    setChildren([...localChildrenRef.current]);
+    setChildren(prev => (prev && prev.length > 0 ? prev : [...localChildrenRef.current]));
 
     const sc = localScreentimeRef.current[targetId];
     if (sc) {
@@ -305,6 +305,7 @@ export function useParentalControl() {
         const activeId = selectedProfileId || mappedChildren[0].id;
         setSelectedProfileId(activeId);
         await refreshChildData(activeId);
+        setIsLoading(false);
         return;
       } catch (err) {
         console.error('Error fetching/seeding children:', err);
