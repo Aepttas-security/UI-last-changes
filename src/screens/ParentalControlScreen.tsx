@@ -1211,15 +1211,10 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
           <View style={styles.linkingView}>
             <View style={styles.qrCard}>
               <Text style={styles.qrCardTitle}>Link Child Device</Text>
-              
-              <View style={styles.qrCodeWrapper}>
-                {renderQRCode(pairingCode)}
-                <View style={styles.scanLine} />
-              </View>
 
               <View style={styles.codeContainer}>
                 <Text style={styles.linkingCodeText}>{pairingCode || '000-000'}</Text>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.refreshButton}
                   onPress={refreshPairingCode}
                   activeOpacity={0.7}
@@ -1230,7 +1225,7 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
               </View>
 
               <Text style={styles.linkingInstructions}>
-                Scan the QR code or enter the 6-digit pairing code on the child device to establish a secure connection.
+                Enter the 6-digit pairing code on the child device to establish a secure connection.
               </Text>
 
               <View style={styles.statusBadge}>
