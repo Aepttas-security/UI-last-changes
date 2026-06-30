@@ -489,6 +489,10 @@ export function useParentalControl() {
     }
   }, [backendAvailable, selectedProfileId]);
 
+  const resolveSOS = useCallback(() => {
+    setSosActive(false);
+  }, []);
+
   const updateSosPreferences = useCallback(async (emailEnabled: boolean, email: string, phoneEnabled: boolean, phone: string) => {
     if (backendAvailable) {
       try {
@@ -538,6 +542,7 @@ export function useParentalControl() {
     reportSummary,
     sosActive,
     triggerSOS,
+    resolveSOS,
     activeAlerts,
     updateSosPreferences,
     getSosPreferences,

@@ -94,6 +94,7 @@ export const ChildDashboardScreen: React.FC<ChildDashboardScreenProps> = ({ onBa
     reportSummary,
     sosActive,
     triggerSOS,
+    resolveSOS,
     activeAlerts,
     updateSosPreferences,
     getSosPreferences,
@@ -515,17 +516,17 @@ export const ChildDashboardScreen: React.FC<ChildDashboardScreenProps> = ({ onBa
             </View>
 
             {/* 3. Emergency SOS Help Card */}
-            <TouchableOpacity
-              style={styles.emergencyHelpCard}
-              onPress={() => setActiveTab('Reports')}
-            >
+            <View style={styles.emergencyHelpCard}>
               <View style={styles.emergencyHelpLeft}>
                 {/* SOS Button Area */}
-                <View style={styles.sosButtonIndicatorContainer}>
+                <TouchableOpacity 
+                  style={styles.sosButtonIndicatorContainer}
+                  onPress={() => (sosActive ? resolveSOS() : triggerSOS(13.0827, 80.2707, 'Parent manual panic trigger'))}
+                >
                   <View style={[styles.sosButtonIndicator, { backgroundColor: colors.redDanger }]}>
                     <Text style={styles.sosButtonIndicatorText}>SOS</Text>
                   </View>
-                </View>
+                </TouchableOpacity>
 
                 {/* Emergency Help Texts */}
                 <View style={styles.emergencyHelpTexts}>
@@ -535,13 +536,13 @@ export const ChildDashboardScreen: React.FC<ChildDashboardScreenProps> = ({ onBa
                   </Text>
                   <Text style={styles.emergencyHelpDesc}>
                     {sosActive 
-                      ? 'Distress alarm and child location tracking coordinates received.' 
-                      : 'Emergency alert status of your child will be shown here.'}
+                      ? 'Distress alarm and child location tracking coordinates active. Tap SOS to resolve.' 
+                      : 'Tap the red SOS button to remotely trigger emergency panic alarm on child device.'}
                   </Text>
                 </View>
               </View>
-              <Icon name="chevron-right" color={colors.textMuted} size={18} />
-            </TouchableOpacity>
+              <Icon name="warning" color={sosActive ? colors.redDanger : colors.textMuted} size={18} />
+            </View>
           </View>
         )}
 
