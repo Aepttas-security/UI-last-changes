@@ -965,44 +965,115 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
 
         {activeTab === 'Reports' && (
           <View style={{ width: '100%' }}>
+            {/* 1. Weekly Summary Overview */}
+            <View style={styles.reportCard}>
+              <Text style={styles.reportCardMainTitle}>Weekly Summary Overview</Text>
+              <View style={styles.summaryStatsRow}>
+                <View style={styles.summaryStatCol}>
+                  <Text style={styles.summaryStatLabel}>TOTAL USAGE</Text>
+                  <Text style={styles.summaryStatValue}>20h 10m</Text>
+                </View>
+                <View style={styles.summaryStatCol}>
+                  <Text style={styles.summaryStatLabel}>DAILY AVG</Text>
+                  <Text style={styles.summaryStatValue}>2h 52m</Text>
+                </View>
+                <View style={styles.summaryStatCol}>
+                  <Text style={styles.summaryStatLabel}>LIMIT BREACHES</Text>
+                  <Text style={[styles.summaryStatValue, { color: colors.pinkAccent }]}>1 Time</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* 2. Weekly Activity Usage Reports */}
+            <View style={styles.reportCard}>
+              <Text style={styles.reportCardMainTitle}>Weekly Activity Usage Reports</Text>
+              <Text style={styles.reportCardSubtitle}>Total screen hours per day</Text>
+              
+              <View style={styles.barChartContainer}>
+                <View style={styles.chartBarsRow}>
+                  {/* Monday */}
+                  <View style={styles.chartBarCol}>
+                    <View style={[styles.chartBarFill, { height: 55, backgroundColor: colors.cyanAccent }]} />
+                    <Text style={styles.chartBarDayLabel}>M</Text>
+                  </View>
+                  {/* Tuesday */}
+                  <View style={styles.chartBarCol}>
+                    <View style={[styles.chartBarFill, { height: 40, backgroundColor: colors.cyanAccent }]} />
+                    <Text style={styles.chartBarDayLabel}>T</Text>
+                  </View>
+                  {/* Wednesday */}
+                  <View style={styles.chartBarCol}>
+                    <View style={[styles.chartBarFill, { height: 75, backgroundColor: colors.cyanAccent }]} />
+                    <Text style={styles.chartBarDayLabel}>W</Text>
+                  </View>
+                  {/* Thursday */}
+                  <View style={styles.chartBarCol}>
+                    <View style={[styles.chartBarFill, { height: 30, backgroundColor: colors.cyanAccent }]} />
+                    <Text style={styles.chartBarDayLabel}>T</Text>
+                  </View>
+                  {/* Friday */}
+                  <View style={styles.chartBarCol}>
+                    <View style={[styles.chartBarFill, { height: 48, backgroundColor: colors.cyanAccent }]} />
+                    <Text style={styles.chartBarDayLabel}>F</Text>
+                  </View>
+                  {/* Saturday */}
+                  <View style={styles.chartBarCol}>
+                    <View style={[styles.chartBarFill, { height: 68, backgroundColor: colors.pinkAccent }]} />
+                    <Text style={styles.chartBarDayLabel}>S</Text>
+                  </View>
+                  {/* Sunday */}
+                  <View style={styles.chartBarCol}>
+                    <View style={[styles.chartBarFill, { height: 60, backgroundColor: colors.cyanAccent }]} />
+                    <Text style={styles.chartBarDayLabel}>S</Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+
+            {/* 3. Category Activity */}
             <View style={styles.reportCard}>
               <Text style={styles.reportHeaderTitle}>CATEGORY ACTIVITY</Text>
               <View style={styles.reportBarRow}>
                 <Text style={styles.reportBarLabel}>Social Apps</Text>
                 <View style={styles.reportBarBg}>
-                  <View style={[styles.reportBarFill, { width: '42%', backgroundColor: colors.pinkAccent }]} />
+                  <View style={[styles.reportBarFillLine, { width: '42%', backgroundColor: colors.pinkAccent }]} />
                 </View>
                 <Text style={styles.reportBarPct}>42%</Text>
               </View>
               <View style={styles.reportBarRow}>
                 <Text style={styles.reportBarLabel}>Gaming Apps</Text>
                 <View style={styles.reportBarBg}>
-                  <View style={[styles.reportBarFill, { width: '48%', backgroundColor: colors.purpleAccent }]} />
+                  <View style={[styles.reportBarFillLine, { width: '48%', backgroundColor: colors.purpleAccent }]} />
                 </View>
                 <Text style={styles.reportBarPct}>48%</Text>
               </View>
               <View style={styles.reportBarRow}>
                 <Text style={styles.reportBarLabel}>Educational</Text>
                 <View style={styles.reportBarBg}>
-                  <View style={[styles.reportBarFill, { width: '10%', backgroundColor: colors.cyanAccent }]} />
+                  <View style={[styles.reportBarFillLine, { width: '10%', backgroundColor: colors.cyanAccent }]} />
                 </View>
                 <Text style={styles.reportBarPct}>10%</Text>
               </View>
             </View>
 
-            <Text style={styles.blockSectionTitle}>Recent Blocked Activities</Text>
-            <View style={styles.activityAlert}>
-              <Icon name="cancel" color={colors.redDanger} size={18} />
-              <View style={styles.activityAlertTexts}>
-                <Text style={styles.activityAlertText}>Attempted to open: tiktok.com</Text>
-                <Text style={styles.activityAlertTime}>Today, 11:20 AM</Text>
-              </View>
-            </View>
-            <View style={[styles.activityAlert, { marginTop: 8 }]}>
-              <Icon name="cancel" color={colors.redDanger} size={18} />
-              <View style={styles.activityAlertTexts}>
-                <Text style={styles.activityAlertText}>Discord app launch blocked by policy</Text>
-                <Text style={styles.activityAlertTime}>Today, 09:15 AM</Text>
+            {/* 4. Recent Blocked Activities */}
+            <View style={styles.reportCard}>
+              <Text style={styles.reportCardMainTitleBold}>Recent Blocked Activities</Text>
+              <View style={styles.blockedListContainer}>
+                <View style={styles.activityAlert}>
+                  <Icon name="cancel" color={colors.redDanger} size={18} />
+                  <View style={styles.activityAlertTexts}>
+                    <Text style={styles.activityAlertText}>Attempted to open: tiktok.com</Text>
+                    <Text style={styles.activityAlertTime}>Today, 11:20 AM</Text>
+                  </View>
+                </View>
+                <View style={[styles.activityAlert, { marginTop: 12 }]}>
+                  <Icon name="cancel" color={colors.redDanger} size={18} />
+                  <View style={styles.activityAlertTexts}>
+                    <Text style={styles.activityAlertText}>Discord app launch blocked by policy</Text>
+                    <Text style={styles.activityAlertTime}>Today, 09:15 AM</Text>
+                  </View>
+                </View>
               </View>
             </View>
           </View>
@@ -1693,16 +1764,85 @@ const getStyles = (colors: any) => StyleSheet.create({
   },
   reportCard: {
     width: '100%',
-    borderRadius: 16,
+    borderRadius: 20,
     backgroundColor: colors.cardBackground,
     borderWidth: 1,
     borderColor: colors.border,
-    padding: 16,
+    padding: 18,
+    marginBottom: 16,
+  },
+  reportCardMainTitle: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 16,
+  },
+  reportCardMainTitleBold: {
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: 'bold',
+    marginBottom: 16,
+  },
+  reportCardSubtitle: {
+    color: colors.textMuted,
+    fontSize: 11,
+    marginTop: -10,
+    marginBottom: 20,
+  },
+  summaryStatsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  summaryStatCol: {
+    flex: 1,
+    alignItems: 'flex-start',
+  },
+  summaryStatLabel: {
+    color: colors.textMuted,
+    fontSize: 10,
+    fontWeight: 'bold',
+    letterSpacing: 0.5,
+  },
+  summaryStatValue: {
+    color: colors.text,
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginTop: 4,
+  },
+  barChartContainer: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 110,
+    marginTop: 10,
+  },
+  chartBarsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    width: '100%',
+    height: 90,
+  },
+  chartBarCol: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  chartBarFill: {
+    width: 14,
+    borderRadius: 7,
+    minHeight: 10,
+  },
+  chartBarDayLabel: {
+    color: colors.textMuted,
+    fontSize: 10,
+    marginTop: 8,
+    fontWeight: 'bold',
   },
   reportHeaderTitle: {
     fontSize: 10,
     fontWeight: 'bold',
-    color: '#6B6E85',
+    color: colors.textMuted,
     letterSpacing: 1,
     marginBottom: 16,
   },
@@ -1725,7 +1865,7 @@ const getStyles = (colors: any) => StyleSheet.create({
     overflow: 'hidden',
     marginHorizontal: 12,
   },
-  reportBarFill: {
+  reportBarFillLine: {
     height: '100%',
   },
   reportBarPct: {
@@ -1735,18 +1875,21 @@ const getStyles = (colors: any) => StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'right',
   },
+  blockedListContainer: {
+    marginTop: 4,
+  },
   activityAlert: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.cardBackground,
+    backgroundColor: colors.background,
     borderWidth: 0.5,
     borderColor: colors.border,
-    borderRadius: 8,
+    borderRadius: 12,
     padding: 12,
     width: '100%',
   },
   activityAlertTexts: {
-    marginLeft: 10,
+    marginLeft: 12,
     flex: 1,
   },
   activityAlertText: {
