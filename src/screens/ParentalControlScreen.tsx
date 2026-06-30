@@ -198,8 +198,8 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
   const [geofenceEnabled, setGeofenceEnabled] = useState(true);
 
   // Notification State
-  const [demoPhone, setDemoPhone] = useState('+1 (555) 019-8372');
-  const [demoEmail, setDemoEmail] = useState('parent@family.net');
+  const [demoPhone, setDemoPhone] = useState('');
+  const [demoEmail, setDemoEmail] = useState('');
   const [emailAlertsEnabled, setEmailAlertsEnabled] = useState(true);
   const [smsAlertsEnabled, setSmsAlertsEnabled] = useState(true);
   
@@ -238,8 +238,8 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
     if (prefs) {
       setEmailAlertsEnabled(prefs.email_enabled);
       setSmsAlertsEnabled(prefs.phone_enabled);
-      setDemoEmail(prefs.parent_email || 'parent@family.net');
-      setDemoPhone(prefs.parent_phone || '+1 (555) 019-8372');
+      setDemoEmail(prefs.parent_email || '');
+      setDemoPhone(prefs.parent_phone || '');
     }
   }, [selectedProfileId]);
 
@@ -1131,7 +1131,7 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
                 </Text>
                 <TextInput
                   style={styles.alertsInput}
-                  placeholder="Enter parent's email address"
+                  placeholder="Enter alert email"
                   placeholderTextColor={colors.textMuted}
                   value={demoEmail}
                   onChangeText={setDemoEmail}
@@ -1160,7 +1160,7 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
                 </Text>
                 <TextInput
                   style={styles.alertsInput}
-                  placeholder="Enter parent's phone number"
+                  placeholder="Enter alert number"
                   placeholderTextColor={colors.textMuted}
                   value={demoPhone}
                   onChangeText={setDemoPhone}
