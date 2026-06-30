@@ -12,6 +12,7 @@ import {
   Keyboard,
   StatusBar,
   Vibration,
+  Image,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { useAppTheme } from '../contexts/ThemeContext';
@@ -172,15 +173,10 @@ export const ChildModeScreen: React.FC<ChildModeScreenProps> = ({ onUnlink }) =>
         
         {/* 1. Profile Header */}
         <View style={styles.profileHeader}>
-          <View style={[styles.avatar, { backgroundColor: colors.purpleAccent }]}>
-            <Text style={styles.avatarText}>A</Text>
-          </View>
+          <Image source={require('../assets/child_avatar.png')} style={styles.avatarImage} />
           <View style={styles.profileTexts}>
-            <Text style={styles.profileName}>Alex Anderson</Text>
-            <View style={styles.managedRow}>
-              <Icon name="lock" color={colors.textMuted} size={12} />
-              <Text style={styles.managedText}>Managed securely by Parent Account</Text>
-            </View>
+            <Text style={styles.profileName}>Hello, Rohan Sharma</Text>
+            <Text style={styles.managedText}>Managed securely by Parent Account</Text>
           </View>
         </View>
 
@@ -397,18 +393,12 @@ const getStyles = (colors: any) => StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
   },
-  avatar: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 4,
-  },
-  avatarText: {
-    color: '#fff',
-    fontSize: 24,
-    fontWeight: 'bold',
+  avatarImage: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   profileTexts: {
     marginLeft: 16,
@@ -416,18 +406,13 @@ const getStyles = (colors: any) => StyleSheet.create({
   },
   profileName: {
     color: colors.text,
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
-  },
-  managedRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 4,
   },
   managedText: {
     color: colors.textMuted,
-    fontSize: 12,
-    marginLeft: 4,
+    fontSize: 13,
+    marginTop: 4,
   },
   complianceBanner: {
     flexDirection: 'row',
