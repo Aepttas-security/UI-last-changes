@@ -67,6 +67,22 @@ const initialProfiles: ChildProfile[] = [
   }
 ];
 
+const categoryOrder = [
+  'All Apps and Categories',
+  'Action',
+  'Business',
+  'Communication',
+  'Entertainment',
+  'Finance',
+  'Health & Fitness',
+  'Music & Audio',
+  'Photography',
+  'Productivity',
+  'Shopping',
+  'Social',
+  'Strategy'
+];
+
 export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ onBack }) => {
   const { colors, mode, toggleTheme } = useAppTheme();
   const styles = React.useMemo(() => getStyles(colors), [colors]);
@@ -103,6 +119,7 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
 
   const [activeTab, setActiveTab] = useState('Overview');
   const [customUrlInput, setCustomUrlInput] = useState('');
+  const [categorySearchQuery, setCategorySearchQuery] = useState('');
   const [sosBannerVisible, setSosBannerVisible] = useState(true);
   
   // Geofencing state
@@ -257,7 +274,16 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
   const setLimitMinutes = changeChildDailyLimit;
 
   const handleToggleCategory = (category: string, val: boolean) => {
-    toggleFilterCategory(category, val);
+    if (category === 'All Apps and Categories') {
+      categoryOrder.forEach(cat => {
+        toggleFilterCategory(cat, val);
+      });
+    } else {
+      toggleFilterCategory(category, val);
+      if (!val) {
+        toggleFilterCategory('All Apps and Categories', false);
+      }
+    }
   };
 
   const handleAddUrl = () => {
@@ -632,37 +658,60 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
         {activeTab === 'Filter' && (
           <View style={{ width: '100%' }}>
             <Text style={styles.blockSectionTitle}>Content Category Filter</Text>
-            {Object.keys(blockedCategories).map(category => {
-              const isBlocked = blockedCategories[category];
-              return (
-                <View key={category} style={styles.policyRow}>
-                  <View style={styles.policyLeft}>
-                    <Icon
-                      name={
-                        category === 'Adult Content' ? 'block' :
-                        category === 'Gambling' ? 'casino' :
-                        category === 'Social Media' ? 'people' :
-                        category === 'Gaming' ? 'sports-esports' :
-                        category === 'Violence/Weapons' ? 'gavel' : 'category'
-                      }
-                      color={isBlocked ? colors.redDanger : colors.greenSuccess}
-                      size={20}
-                    />
-                    <Text style={styles.policyName}>{category}</Text>
-                  </View>
-                  <View style={styles.policyRight}>
-                    <Text style={[styles.statusText, { color: isBlocked ? colors.redDanger : colors.greenSuccess }]}>
-                      {isBlocked ? 'BLOCKED' : 'ALLOWED'}
-                    </Text>
-                    <Switch
-                      value={!isBlocked}
-                      onValueChange={val => handleToggleCategory(category, !val)}
-                      trackColor={{ true: colors.greenSuccess, false: colors.redDanger }}
-                    />
-                  </View>
-                </View>
-              );
-            })}
+            
+            {/* Search Input Bar */}
+            <View style={styles.searchContainer}>
+              <Icon name="search" color={colors.textMuted} size={18} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search"
+                placeholderTextColor={colors.textMuted}
+                value={categorySearchQuery}
+                onChangeText={setCategorySearchQuery}
+                autoCapitalize="none"
+              />
+            </View>
+
+            {/* Premium Categories Card List */}
+            <View style={styles.categoryCardContainer}>
+              {categoryOrder
+                .filter(cat => {
+                  const exists = blockedCategories.hasOwnProperty(cat);
+                  const matchesSearch = cat.toLowerCase().includes(categorySearchQuery.toLowerCase());
+                  return exists && matchesSearch;
+                })
+                .map((category, index, filteredList) => {
+                  const isBlocked = blockedCategories[category];
+                  return (
+                    <TouchableOpacity
+                      key={category}
+                      style={[
+                        styles.categoryRow,
+                        index === filteredList.length - 1 && { borderBottomWidth: 0 }
+                      ]}
+                      onPress={() => handleToggleCategory(category, !isBlocked)}
+                    >
+                      <View style={styles.categoryLeft}>
+                        {/* Circular selector indicator on the left */}
+                        <View
+                          style={[
+                            styles.circularCheckbox,
+                            { borderColor: isBlocked ? colors.blueAccent : colors.textMuted + '66' },
+                            isBlocked && { backgroundColor: colors.blueAccent }
+                          ]}
+                        >
+                          {isBlocked && <Icon name="check" color="#fff" size={12} />}
+                        </View>
+                        <Text style={styles.categoryNameText}>{category}</Text>
+                      </View>
+                      {/* Chevron arrow `>` on the right (except All Apps) */}
+                      {category !== 'All Apps and Categories' && (
+                        <Icon name="chevron-right" color={colors.textMuted} size={18} />
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+            </View>
 
             <Text style={[styles.blockSectionTitle, { marginTop: 24 }]}>Custom Domain Filter</Text>
             <View style={styles.settingCard}>
@@ -1429,6 +1478,59 @@ const getStyles = (colors: any) => StyleSheet.create({
   urlText: {
     color: colors.text,
     fontSize: 13,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.cardBackgroundLight,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    height: 48,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  searchInput: {
+    flex: 1,
+    color: colors.text,
+    fontSize: 15,
+    marginLeft: 10,
+    padding: 0,
+  },
+  categoryCardContainer: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: colors.border,
+    overflow: 'hidden',
+    marginBottom: 24,
+  },
+  categoryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  categoryLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  circularCheckbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 1.5,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  categoryNameText: {
+    fontSize: 15,
+    fontWeight: '500',
+    marginLeft: 16,
   },
   locationRadarCard: {
     width: '100%',

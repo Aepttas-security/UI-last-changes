@@ -97,13 +97,41 @@ export function useParentalControl() {
     '1': {
       status: 'success',
       child_id: '1',
-      blocked_categories: { 'Adult Content': true, 'Gambling': true, 'Social Media': false, 'Gaming': false, 'Violence/Weapons': true },
+      blocked_categories: {
+        'All Apps and Categories': false,
+        'Action': false,
+        'Business': false,
+        'Communication': false,
+        'Entertainment': false,
+        'Finance': false,
+        'Health & Fitness': false,
+        'Music & Audio': false,
+        'Photography': false,
+        'Productivity': false,
+        'Shopping': false,
+        'Social': false,
+        'Strategy': false
+      },
       blacklisted_urls: ['tiktok.com', 'instagram.com', 'snapchat.com', 'reddit.com']
     },
     '2': {
       status: 'success',
       child_id: '2',
-      blocked_categories: { 'Adult Content': true, 'Gambling': true, 'Social Media': true, 'Gaming': false, 'Violence/Weapons': true },
+      blocked_categories: {
+        'All Apps and Categories': false,
+        'Action': false,
+        'Business': false,
+        'Communication': false,
+        'Entertainment': false,
+        'Finance': false,
+        'Health & Fitness': false,
+        'Music & Audio': false,
+        'Photography': false,
+        'Productivity': false,
+        'Shopping': false,
+        'Social': false,
+        'Strategy': false
+      },
       blacklisted_urls: ['tiktok.com', 'instagram.com', 'youtube.com']
     }
   });
