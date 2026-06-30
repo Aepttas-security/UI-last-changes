@@ -120,6 +120,76 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
   const [activeTab, setActiveTab] = useState('Overview');
   const [customUrlInput, setCustomUrlInput] = useState('');
   const [categorySearchQuery, setCategorySearchQuery] = useState('');
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
+  
+  const [categorizedApps, setCategorizedApps] = useState<{ [category: string]: { name: string; isBlocked: boolean; icon: string }[] }>({
+    'Action': [
+      { name: 'Call of Duty Mobile', isBlocked: false, icon: 'sports-esports' },
+      { name: 'PUBG Mobile', isBlocked: false, icon: 'sports-esports' },
+      { name: 'Garena Free Fire', isBlocked: true, icon: 'sports-esports' },
+      { name: 'Subway Surfers', isBlocked: false, icon: 'videogame-asset' }
+    ],
+    'Business': [
+      { name: 'Slack', isBlocked: false, icon: 'work' },
+      { name: 'Zoom', isBlocked: false, icon: 'video-call' },
+      { name: 'Microsoft Teams', isBlocked: false, icon: 'business-center' },
+      { name: 'Google Meet', isBlocked: false, icon: 'videocam' }
+    ],
+    'Communication': [
+      { name: 'WhatsApp Messenger', isBlocked: false, icon: 'chat' },
+      { name: 'Telegram', isBlocked: false, icon: 'send' },
+      { name: 'Google Chrome', isBlocked: false, icon: 'language' },
+      { name: 'Gmail', isBlocked: false, icon: 'email' }
+    ],
+    'Entertainment': [
+      { name: 'YouTube', isBlocked: false, icon: 'play-circle-filled' },
+      { name: 'Netflix', isBlocked: false, icon: 'movie' },
+      { name: 'Disney+', isBlocked: false, icon: 'tv' },
+      { name: 'Twitch', isBlocked: true, icon: 'live-tv' }
+    ],
+    'Finance': [
+      { name: 'PayPal', isBlocked: false, icon: 'account-balance-wallet' },
+      { name: 'Google Wallet', isBlocked: false, icon: 'payment' },
+      { name: 'Venmo', isBlocked: false, icon: 'attach-money' }
+    ],
+    'Health & Fitness': [
+      { name: 'Strava', isBlocked: false, icon: 'directions-run' },
+      { name: 'MyFitnessPal', isBlocked: false, icon: 'fitness-center' },
+      { name: 'Fitbit', isBlocked: false, icon: 'watch' }
+    ],
+    'Music & Audio': [
+      { name: 'Spotify', isBlocked: false, icon: 'music-note' },
+      { name: 'Apple Music', isBlocked: false, icon: 'audiotrack' },
+      { name: 'SoundCloud', isBlocked: false, icon: 'radio' },
+      { name: 'YouTube Music', isBlocked: false, icon: 'queue-music' }
+    ],
+    'Photography': [
+      { name: 'Instagram', isBlocked: false, icon: 'camera-alt' },
+      { name: 'Snapchat', isBlocked: true, icon: 'photo-camera' },
+      { name: 'Adobe Lightroom', isBlocked: false, icon: 'brush' }
+    ],
+    'Productivity': [
+      { name: 'Notion', isBlocked: false, icon: 'note-add' },
+      { name: 'Google Calendar', isBlocked: false, icon: 'event' },
+      { name: 'Trello', isBlocked: false, icon: 'dashboard' }
+    ],
+    'Shopping': [
+      { name: 'Amazon Shopping', isBlocked: false, icon: 'shopping-cart' },
+      { name: 'eBay', isBlocked: false, icon: 'storefront' },
+      { name: 'AliExpress', isBlocked: true, icon: 'shopping-bag' }
+    ],
+    'Social': [
+      { name: 'Facebook', isBlocked: false, icon: 'public' },
+      { name: 'TikTok', isBlocked: true, icon: 'videocam' },
+      { name: 'Discord', isBlocked: true, icon: 'forum' },
+      { name: 'X (Twitter)', isBlocked: false, icon: 'tag' }
+    ],
+    'Strategy': [
+      { name: 'Clash of Clans', isBlocked: false, icon: 'extension' },
+      { name: 'Clash Royale', isBlocked: false, icon: 'layers' },
+      { name: 'Chess.com', isBlocked: false, icon: 'grid-on' }
+    ]
+  });
   const [sosBannerVisible, setSosBannerVisible] = useState(true);
   
   // Geofencing state
@@ -680,35 +750,80 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
                   const matchesSearch = cat.toLowerCase().includes(categorySearchQuery.toLowerCase());
                   return exists && matchesSearch;
                 })
-                .map((category, index, filteredList) => {
+                .map((category) => {
                   const isBlocked = blockedCategories[category];
                   return (
-                    <TouchableOpacity
-                      key={category}
-                      style={[
-                        styles.categoryRow,
-                        index === filteredList.length - 1 && { borderBottomWidth: 0 }
-                      ]}
-                      onPress={() => handleToggleCategory(category, !isBlocked)}
-                    >
-                      <View style={styles.categoryLeft}>
-                        {/* Circular selector indicator on the left */}
-                        <View
-                          style={[
-                            styles.circularCheckbox,
-                            { borderColor: isBlocked ? colors.blueAccent : colors.textMuted + '66' },
-                            isBlocked && { backgroundColor: colors.blueAccent }
-                          ]}
-                        >
-                          {isBlocked && <Icon name="check" color="#fff" size={12} />}
+                    <View key={category} style={{ borderBottomWidth: 1, borderBottomColor: colors.border }}>
+                      <TouchableOpacity
+                        style={[
+                          styles.categoryRow,
+                          { borderBottomWidth: 0 }
+                        ]}
+                        onPress={() => {
+                          if (category !== 'All Apps and Categories') {
+                            setExpandedCategory(expandedCategory === category ? null : category);
+                          } else {
+                            handleToggleCategory(category, !isBlocked);
+                          }
+                        }}
+                      >
+                        <View style={styles.categoryLeft}>
+                          {/* Circular selector indicator on the left */}
+                          <TouchableOpacity
+                            style={[
+                              styles.circularCheckbox,
+                              { borderColor: isBlocked ? colors.blueAccent : colors.textMuted + '66' },
+                              isBlocked && { backgroundColor: colors.blueAccent }
+                            ]}
+                            onPress={() => handleToggleCategory(category, !isBlocked)}
+                          >
+                            {isBlocked && <Icon name="check" color="#fff" size={12} />}
+                          </TouchableOpacity>
+                          <Text style={styles.categoryNameText}>{category}</Text>
                         </View>
-                        <Text style={styles.categoryNameText}>{category}</Text>
-                      </View>
-                      {/* Chevron arrow `>` on the right (except All Apps) */}
-                      {category !== 'All Apps and Categories' && (
-                        <Icon name="chevron-right" color={colors.textMuted} size={18} />
+                        {/* Chevron arrow `>` on the right (except All Apps) */}
+                        {category !== 'All Apps and Categories' && (
+                          <Icon 
+                            name={expandedCategory === category ? "expand-more" : "chevron-right"} 
+                            color={colors.textMuted} 
+                            size={18} 
+                          />
+                        )}
+                      </TouchableOpacity>
+
+                      {/* Expanded Apps List */}
+                      {expandedCategory === category && categorizedApps[category] && (
+                        <View style={styles.expandedAppsContainer}>
+                          {categorizedApps[category].map((app, appIdx) => {
+                            const isAppBlockedByCat = isBlocked; // if category is blocked, app is forced blocked
+                            const isAppBlocked = isAppBlockedByCat || app.isBlocked;
+                            return (
+                              <View key={app.name} style={styles.appPolicyRow}>
+                                <View style={styles.appPolicyLeft}>
+                                  <View style={[styles.appIconBg, { backgroundColor: colors.cardBackgroundLight }]}>
+                                    <Icon name={app.icon} color={isAppBlocked ? colors.redDanger : colors.greenSuccess} size={16} />
+                                  </View>
+                                  <Text style={[styles.appNameText, { color: isAppBlocked ? colors.redDanger : colors.text }]}>
+                                    {app.name}
+                                  </Text>
+                                </View>
+                                <Switch
+                                  value={!isAppBlocked}
+                                  disabled={isAppBlockedByCat} // disable toggle if category itself is blocked
+                                  onValueChange={(val) => {
+                                    // Toggle individual app block state
+                                    const updated = { ...categorizedApps };
+                                    updated[category][appIdx].isBlocked = !val;
+                                    setCategorizedApps(updated);
+                                  }}
+                                  trackColor={{ true: colors.greenSuccess, false: colors.redDanger }}
+                                />
+                              </View>
+                            );
+                          })}
+                        </View>
                       )}
-                    </TouchableOpacity>
+                    </View>
                   );
                 })}
             </View>
@@ -1531,6 +1646,36 @@ const getStyles = (colors: any) => StyleSheet.create({
     fontSize: 15,
     fontWeight: '500',
     marginLeft: 16,
+  },
+  expandedAppsContainer: {
+    backgroundColor: colors.cardBackgroundLight,
+    paddingLeft: 24,
+    paddingRight: 16,
+    paddingBottom: 8,
+  },
+  appPolicyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    borderBottomWidth: 0.5,
+    borderBottomColor: colors.border + '33',
+  },
+  appPolicyLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  appIconBg: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  appNameText: {
+    fontSize: 14,
+    marginLeft: 12,
   },
   locationRadarCard: {
     width: '100%',
