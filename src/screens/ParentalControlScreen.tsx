@@ -195,6 +195,7 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
   // Geofencing state
   const [geofenceRadius, setGeofenceRadius] = useState(120);
   const [locationTrackingEnabled, setLocationTrackingEnabled] = useState(true);
+  const [geofenceEnabled, setGeofenceEnabled] = useState(true);
 
   // Notification State
   const [demoPhone, setDemoPhone] = useState('+1 (555) 019-8372');
@@ -875,9 +876,24 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
               </View>
             </View>
 
+            {/* Enable Geofence Switch Card */}
+            <View style={[styles.settingCard, { marginTop: 12 }]}>
+              <View style={styles.switchRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.settingTitle}>Enable Geofence</Text>
+                  <Text style={styles.settingSub}>Enforce safe zone boundaries on the map</Text>
+                </View>
+                <Switch
+                  value={geofenceEnabled}
+                  onValueChange={setGeofenceEnabled}
+                  trackColor={{ true: colors.greenSuccess }}
+                />
+              </View>
+            </View>
+
             {locationTrackingEnabled && (
-              <View style={[styles.locationRadarCard, { marginTop: 16 }]}>
-                {/* Google Map View replacing the old SVG Radar */}
+              <View style={[styles.locationRadarCard, { marginTop: 12 }]}>
+                {/* Google Map View */}
                 <View style={{ width: '100%', height: 220, borderRadius: 12, overflow: 'hidden' }}>
                   <MapView
                     style={{ width: '100%', height: '100%' }}
@@ -889,16 +905,18 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
                     }}
                   >
                     {/* Circle Marker for Safe Zone / Geofence */}
-                    <MapCircle
-                      center={{
-                        latitude: location?.latitude ? Number(location.latitude) : 13.0827,
-                        longitude: location?.longitude ? Number(location.longitude) : 80.2707,
-                      }}
-                      radius={geofenceRadius}
-                      fillColor={colors.greenSuccess + '20'}
-                      strokeColor={colors.greenSuccess}
-                      strokeWidth={2}
-                    />
+                    {geofenceEnabled && (
+                      <MapCircle
+                        center={{
+                          latitude: location?.latitude ? Number(location.latitude) : 13.0827,
+                          longitude: location?.longitude ? Number(location.longitude) : 80.2707,
+                        }}
+                        radius={geofenceRadius}
+                        fillColor={colors.greenSuccess + '20'}
+                        strokeColor={colors.greenSuccess}
+                        strokeWidth={2}
+                      />
+                    )}
 
                     {/* Child Pin Marker */}
                     <Marker
@@ -957,6 +975,14 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
                   >
                     <Text style={styles.sliderButtonText}>+</Text>
                   </TouchableOpacity>
+                </View>
+
+                {/* Live Address Section */}
+                <View style={styles.liveAddressContainer}>
+                  <Text style={styles.liveAddressLabel}>LIVE ADDRESS</Text>
+                  <Text style={styles.liveAddressText}>
+                    {location?.current_address || 'Near Government School, Campus Zone'}
+                  </Text>
                 </View>
               </View>
             )}
@@ -1755,6 +1781,26 @@ const getStyles = (colors: any) => StyleSheet.create({
     borderColor: colors.border,
     padding: 16,
     alignItems: 'center',
+  },
+  liveAddressContainer: {
+    width: '100%',
+    marginTop: 16,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  liveAddressLabel: {
+    color: colors.textMuted,
+    fontSize: 10,
+    fontWeight: 'bold',
+    letterSpacing: 1,
+    marginBottom: 6,
+  },
+  liveAddressText: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: '500',
+    lineHeight: 18,
   },
   radarLabel: {
     color: colors.text,
