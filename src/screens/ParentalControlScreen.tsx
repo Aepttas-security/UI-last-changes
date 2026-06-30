@@ -984,6 +984,23 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
                     {location?.current_address || 'Near Government School, Campus Zone'}
                   </Text>
                 </View>
+
+                {/* Coordinates Row */}
+                <View style={styles.coordsRow}>
+                  <View style={styles.coordsCol}>
+                    <Text style={styles.coordsLabel}>LATITUDE</Text>
+                    <Text style={styles.coordsValue}>
+                      {location?.latitude ? Number(location.latitude).toFixed(6) : '13.082700'}
+                    </Text>
+                  </View>
+                  <View style={styles.coordsDivider} />
+                  <View style={styles.coordsCol}>
+                    <Text style={styles.coordsLabel}>LONGITUDE</Text>
+                    <Text style={styles.coordsValue}>
+                      {location?.longitude ? Number(location.longitude).toFixed(6) : '80.270700'}
+                    </Text>
+                  </View>
+                </View>
               </View>
             )}
           </View>
@@ -1801,6 +1818,37 @@ const getStyles = (colors: any) => StyleSheet.create({
     fontSize: 13,
     fontWeight: '500',
     lineHeight: 18,
+  },
+  coordsRow: {
+    flexDirection: 'row',
+    width: '100%',
+    marginTop: 14,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    alignItems: 'center',
+  },
+  coordsCol: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  coordsDivider: {
+    width: 1,
+    height: 36,
+    backgroundColor: colors.border,
+  },
+  coordsLabel: {
+    color: colors.textMuted,
+    fontSize: 9,
+    fontWeight: 'bold',
+    letterSpacing: 1,
+    marginBottom: 4,
+  },
+  coordsValue: {
+    color: colors.cyanAccent,
+    fontSize: 13,
+    fontWeight: 'bold',
+    fontVariant: ['tabular-nums'],
   },
   radarLabel: {
     color: colors.text,
