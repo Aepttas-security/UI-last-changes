@@ -10,6 +10,7 @@ import {
   StatusBar,
 } from 'react-native';
 import Svg, { Circle, Rect, Line, G } from 'react-native-svg';
+import MapView, { Marker, Circle as MapCircle } from 'react-native-maps';
 import { useAppTheme } from '../contexts/ThemeContext';
 import { colors } from '../styles/theme';
 import { Icon } from '../components/Icon';
@@ -714,23 +715,41 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
 
             {locationTrackingEnabled && (
               <View style={[styles.locationRadarCard, { marginTop: 16 }]}>
-                {/* Geofence Radar Svg */}
-                <Svg width="100%" height={200} viewBox="0 0 320 200">
-                  {/* Radar Grid */}
-                  <Circle cx="160" cy="100" r="80" stroke={colors.greenSuccess + '33'} strokeWidth="1" fill="none" />
-                  <Circle cx="160" cy="100" r="50" stroke={colors.greenSuccess + '33'} strokeWidth="1" fill="none" />
-                  <Circle cx="160" cy="100" r="20" stroke={colors.greenSuccess + '33'} strokeWidth="1" fill="none" />
-                  <Line x1="160" y1="10" x2="160" y2="190" stroke={colors.greenSuccess + '22'} strokeWidth="1" />
-                  <Line x1="70" y1="100" x2="250" y2="100" stroke={colors.greenSuccess + '22'} strokeWidth="1" />
+                {/* Google Map View replacing the old SVG Radar */}
+                <View style={{ width: '100%', height: 220, borderRadius: 12, overflow: 'hidden' }}>
+                  <MapView
+                    style={{ width: '100%', height: '100%' }}
+                    initialRegion={{
+                      latitude: location?.latitude ? Number(location.latitude) : 13.0827,
+                      longitude: location?.longitude ? Number(location.longitude) : 80.2707,
+                      latitudeDelta: 0.01,
+                      longitudeDelta: 0.01,
+                    }}
+                  >
+                    {/* Circle Marker for Safe Zone / Geofence */}
+                    <MapCircle
+                      center={{
+                        latitude: location?.latitude ? Number(location.latitude) : 13.0827,
+                        longitude: location?.longitude ? Number(location.longitude) : 80.2707,
+                      }}
+                      radius={geofenceRadius}
+                      fillColor={colors.greenSuccess + '20'}
+                      strokeColor={colors.greenSuccess}
+                      strokeWidth={2}
+                    />
 
-                  {/* Geofence safe zone circle */}
-                  <Circle cx="160" cy="100" r={Math.min(90, geofenceRadius / 2)} fill={colors.greenSuccess + '1a'} />
-                  <Circle cx="160" cy="100" r={Math.min(90, geofenceRadius / 2)} stroke={colors.greenSuccess} strokeWidth="1.5" fill="none" strokeDasharray="4,4" />
-
-                  {/* Child Position */}
-                  <Circle cx="140" cy="80" r="6" fill={colors.purpleAccent} />
-                  <Circle cx="140" cy="80" r="12" stroke={colors.purpleAccent} strokeWidth="1" fill="none" opacity={0.5} />
-                </Svg>
+                    {/* Child Pin Marker */}
+                    <Marker
+                      coordinate={{
+                        latitude: location?.latitude ? Number(location.latitude) : 13.0827,
+                        longitude: location?.longitude ? Number(location.longitude) : 80.2707,
+                      }}
+                      title={activeChild?.name || 'Child'}
+                      description={location?.current_address || 'Live Location'}
+                      pinColor={colors.purpleAccent}
+                    />
+                  </MapView>
+                </View>
 
                 {/* Safe Zone Radius row */}
                 <View style={styles.radiusInputRow}>
