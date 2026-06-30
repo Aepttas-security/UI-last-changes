@@ -15,6 +15,7 @@ import {
   Image,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import Svg, { Circle as SvgCircle } from 'react-native-svg';
 import { useAppTheme } from '../contexts/ThemeContext';
 import { colors } from '../styles/theme';
 import { Icon } from '../components/Icon';
@@ -171,171 +172,235 @@ export const ChildModeScreen: React.FC<ChildModeScreenProps> = ({ onUnlink }) =>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         
-        {/* 1. Profile Header */}
+        {/* 1. Header App Bar */}
+        <View style={styles.headerBar}>
+          <TouchableOpacity style={styles.headerBtn}>
+            <Icon name="menu" color={colors.text} size={22} />
+          </TouchableOpacity>
+          <View style={styles.headerTitleCenter}>
+            <Text style={styles.headerTitle}>Child Overview</Text>
+            <Text style={styles.headerSubtitle}>Stay safe & connected</Text>
+          </View>
+          <TouchableOpacity style={styles.headerBtn}>
+            <View style={{ position: 'relative' }}>
+              <Icon name="notifications" color={colors.text} size={22} />
+              <View style={styles.badgeDot} />
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* 2. Profile Header */}
         <View style={styles.profileHeader}>
           <Image source={require('../assets/child_avatar.png')} style={styles.avatarImage} />
           <View style={styles.profileTexts}>
             <Text style={styles.profileName}>Hello, Rohan Sharma</Text>
             <Text style={styles.managedText}>Managed securely by Parent Account</Text>
           </View>
+          <Icon name="chevron-right" color={colors.textMuted} size={18} />
         </View>
 
-        {/* 2. System Compliance Status Banner */}
-        <View
-          style={[
-            styles.complianceBanner,
-            {
-              backgroundColor: sosActive
-                ? colors.redDanger + '1E'
-                : colors.greenSuccess + '1E',
-              borderColor: sosActive ? colors.redDanger : colors.greenSuccess,
-            },
-          ]}
-        >
-          <View style={styles.complianceLeft}>
-            <Icon
-              name={sosActive ? 'warning' : 'security'}
-              color={sosActive ? colors.redDanger : colors.greenSuccess}
-              size={20}
-            />
-            <Text
-              style={[
-                styles.complianceText,
-                { color: sosActive ? colors.redDanger : colors.greenSuccess },
-              ]}
-            >
-              SYSTEM SECURITY: {sosActive ? 'CRITICAL (SOS ACTIVE)' : 'SECURE & COMPLIANT'}
-            </Text>
-          </View>
-          <View
-            style={[
-              styles.dotIndicator,
-              { backgroundColor: sosActive ? colors.redDanger : colors.greenSuccess },
-            ]}
-          />
-        </View>
-
-        {/* 3. Protection Status Cards Grid */}
-        <Text style={styles.sectionHeader}>PROTECTION GUARDIANS</Text>
-        <View style={styles.gridContainer}>
-          {/* Card 1: Location Sync */}
-          <View style={styles.gridCard}>
-            <View style={[styles.cardIconBg, { backgroundColor: colors.blueAccent + '15' }]}>
-              <Icon name="place" color={colors.blueAccent} size={20} />
+        {/* 3. System Status Card */}
+        <View style={styles.systemStatusCard}>
+          <View style={styles.systemStatusLeft}>
+            <View style={[styles.shieldIconBg, { backgroundColor: colors.greenSuccess + '15' }]}>
+              <Icon name="shield" color={colors.greenSuccess} size={28} />
             </View>
-            <View style={styles.cardInfo}>
-              <Text style={styles.cardTitle}>Location Sync</Text>
-              <Text style={[styles.cardValue, { color: colors.greenSuccess }]}>Tracking Active</Text>
-              <Text style={styles.cardSub}>Sharing Live GPS</Text>
+            <View style={styles.systemStatusTextContainer}>
+              <Text style={styles.systemStatusLabel}>SYSTEM STATUS</Text>
+              <Text style={styles.systemStatusValue}>SECURE</Text>
+              <Text style={styles.systemStatusDesc}>All protection services are active</Text>
             </View>
           </View>
-
-          {/* Card 2: Web Shield */}
-          <View style={styles.gridCard}>
-            <View style={[styles.cardIconBg, { backgroundColor: colors.cyanAccent + '15' }]}>
-              <Icon name="security" color={colors.cyanAccent} size={20} />
-            </View>
-            <View style={styles.cardInfo}>
-              <Text style={styles.cardTitle}>Web Shield</Text>
-              <Text style={[styles.cardValue, { color: colors.greenSuccess }]}>Shield Online</Text>
-              <Text style={styles.cardSub}>SafeSearch Enforced</Text>
-            </View>
-          </View>
-
-          {/* Card 3: App Limits */}
-          <View style={styles.gridCard}>
-            <View style={[styles.cardIconBg, { backgroundColor: colors.pinkAccent + '15' }]}>
-              <Icon name="schedule" color={colors.pinkAccent} size={20} />
-            </View>
-            <View style={styles.cardInfo}>
-              <Text style={styles.cardTitle}>App Limits</Text>
-              <Text style={[styles.cardValue, { color: colors.orangeWarning }]}>Limits Active</Text>
-              <Text style={styles.cardSub}>1h 45m remaining</Text>
-            </View>
-          </View>
-
-          {/* Card 4: Battery Health */}
-          <View style={styles.gridCard}>
-            <View style={[styles.cardIconBg, { backgroundColor: colors.greenSuccess + '15' }]}>
-              <Icon name="battery-charging-full" color={colors.greenSuccess} size={20} />
-            </View>
-            <View style={styles.cardInfo}>
-              <Text style={styles.cardTitle}>Battery Status</Text>
-              <Text style={styles.cardValue}>84%</Text>
-              <Text style={styles.cardSub}>Charging</Text>
-            </View>
+          <View style={[styles.checkCircleBg, { backgroundColor: colors.greenSuccess + '15' }]}>
+            <Icon name="check-circle" color={colors.greenSuccess} size={18} />
           </View>
         </View>
 
-        {/* 4. SOS Emergency Hold Button */}
-        <View style={styles.sosContainer}>
-          {/* Pulse circles */}
-          <Animated.View
-            style={[
-              styles.sosPulse,
-              {
-                transform: [{ scale: pulseScale }],
-                borderColor: sosActive ? colors.redDanger + '77' : colors.purpleAccent + '33',
-                backgroundColor: sosActive ? colors.redDanger + '20' : colors.purpleAccent + '10',
-              },
-            ]}
-          />
-
-          <View
-            style={styles.sosTouchArea}
-            onTouchStart={handlePressIn}
-            onTouchEnd={handlePressOut}
-          >
-            <View
-              style={[
-                styles.sosButton,
-                { backgroundColor: sosActive ? colors.redDanger : colors.purpleAccent },
-              ]}
-            >
-              {/* Dynamic Fill Progress bar inside the button */}
-              {isPressing && (
-                <Animated.View
-                  style={[
-                    styles.sosProgressFill,
-                    {
-                      width: progressWidth,
-                      backgroundColor: colors.redDanger + '66',
-                    },
-                  ]}
+        {/* 4. Dashboard Cards Grid */}
+        <View style={styles.dashboardGrid}>
+          {/* Card 1: Daily Screen Time */}
+          <View style={styles.timeCard}>
+            <View style={styles.cardHeaderRow}>
+              <Icon name="schedule" color={colors.purpleAccent} size={20} />
+              <Text style={styles.cardHeaderTitle}>Daily Screen Time</Text>
+            </View>
+            <View style={styles.circleContainer}>
+              <Svg width={110} height={110} viewBox="0 0 100 100">
+                <SvgCircle cx="50" cy="50" r="40" stroke={colors.border} strokeWidth="8" fill="none" />
+                <SvgCircle
+                  cx="50"
+                  cy="50"
+                  r="40"
+                  stroke={colors.purpleAccent}
+                  strokeWidth="8"
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeDasharray={`${2 * Math.PI * 40}`}
+                  strokeDashoffset={`${2 * Math.PI * 40 * (1 - 0.56)}`}
+                  transform="rotate(-90 50 50)"
                 />
-              )}
+              </Svg>
+              <View style={styles.circleTextContainer}>
+                <Text style={styles.circleMainText}>2h 15m</Text>
+                <Text style={styles.circleSubText}>of 4h limit</Text>
+              </View>
+            </View>
+          </View>
 
-              <Icon name={sosActive ? 'warning' : 'notifications-active'} color="#fff" size={36} />
-              
-              <Text style={styles.sosButtonText}>
-                {sosActive ? 'SOS ACTIVE' : isPressing ? `HOLDING\n${sosCountdown}s` : 'EMERGENCY\nSOS'}
+          {/* Card 2: Apps Used Today */}
+          <View style={styles.appsCard}>
+            <View style={styles.cardHeaderRow}>
+              <Icon name="apps" color={colors.blueAccent} size={20} />
+              <Text style={styles.cardHeaderTitle}>Apps Used Today</Text>
+            </View>
+            <View style={styles.appsList}>
+              <View style={styles.appRowItem}>
+                <View style={styles.appRowLeft}>
+                  <View style={[styles.appBadge, { backgroundColor: '#ef4444' }]}>
+                    <Icon name="play-arrow" color="#fff" size={14} />
+                  </View>
+                  <Text style={styles.appRowName}>YouTube</Text>
+                </View>
+                <Text style={styles.appRowTime}>45m</Text>
+              </View>
+              <View style={styles.appRowItem}>
+                <View style={styles.appRowLeft}>
+                  <View style={[styles.appBadge, { backgroundColor: '#3b82f6' }]}>
+                    <Icon name="public" color="#fff" size={14} />
+                  </View>
+                  <Text style={styles.appRowName}>Chrome</Text>
+                </View>
+                <Text style={styles.appRowTime}>30m</Text>
+              </View>
+              <View style={styles.appRowItem}>
+                <View style={styles.appRowLeft}>
+                  <View style={[styles.appBadge, { backgroundColor: '#22c55e' }]}>
+                    <Icon name="chat" color="#fff" size={14} />
+                  </View>
+                  <Text style={styles.appRowName}>WhatsApp</Text>
+                </View>
+                <Text style={styles.appRowTime}>22m</Text>
+              </View>
+              <View style={styles.appRowItem}>
+                <View style={styles.appRowLeft}>
+                  <View style={[styles.appBadge, { backgroundColor: '#ec4899' }]}>
+                    <Icon name="camera-alt" color="#fff" size={14} />
+                  </View>
+                  <Text style={styles.appRowName}>Instagram</Text>
+                </View>
+                <Text style={styles.appRowTime}>18m</Text>
+              </View>
+              <Text style={styles.viewAllLink}>View all &gt;</Text>
+            </View>
+          </View>
+
+          {/* Card 3: Notifications Today */}
+          <View style={styles.statGridCard}>
+            <View style={styles.statCardHeader}>
+              <Icon name="notifications" color={colors.purpleAccent} size={20} />
+              <Text style={styles.statCardTitle}>Notifications Today</Text>
+            </View>
+            <Text style={styles.statCardValue}>18</Text>
+            <Text style={styles.statCardSub}>Total Notifications</Text>
+          </View>
+
+          {/* Card 4: Battery */}
+          <View style={styles.statGridCard}>
+            <View style={styles.statCardHeader}>
+              <Icon name="battery-charging-full" color={colors.greenSuccess} size={20} />
+              <Text style={styles.statCardTitle}>Battery</Text>
+            </View>
+            <Text style={[styles.statCardValue, { color: colors.greenSuccess }]}>84%</Text>
+            <View style={styles.batterySubRow}>
+              <Icon name="flash-on" color={colors.greenSuccess} size={12} />
+              <Text style={styles.batterySubText}>Charging</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* 5. Emergency SOS Help Card */}
+        <View 
+          style={styles.emergencyHelpCard}
+          onTouchStart={handlePressIn}
+          onTouchEnd={handlePressOut}
+        >
+          <View style={styles.emergencyHelpLeft}>
+            {/* SOS Button Area */}
+            <View style={styles.sosButtonIndicatorContainer}>
+              <Animated.View
+                style={[
+                  styles.sosButtonIndicatorPulse,
+                  {
+                    transform: [{ scale: pulseScale }],
+                    borderColor: colors.redDanger + '44',
+                    backgroundColor: colors.redDanger + '20',
+                  },
+                ]}
+              />
+              <View style={[styles.sosButtonIndicator, { backgroundColor: colors.redDanger }]}>
+                {isPressing && (
+                  <Animated.View
+                    style={[
+                      styles.sosProgressFill,
+                      {
+                        width: progressWidth,
+                        backgroundColor: '#fff',
+                        opacity: 0.3,
+                      },
+                    ]}
+                  />
+                )}
+                <Text style={styles.sosButtonIndicatorText}>
+                  {isPressing ? `${sosCountdown}s` : 'SOS'}
+                </Text>
+              </View>
+            </View>
+
+            {/* Emergency Help Texts */}
+            <View style={styles.emergencyHelpTexts}>
+              <Text style={styles.emergencyHelpTitle}>Emergency Help</Text>
+              <Text style={[styles.emergencyHelpSubtitle, sosActive && { color: colors.greenSuccess }]}>
+                {sosActive ? 'DISTRESS BROADCASTING' : 'HOLD FOR 3 SECONDS'}
+              </Text>
+              <Text style={styles.emergencyHelpDesc}>
+                {sosActive 
+                  ? 'Distress alarm and GPS telemetry details successfully transmitted to parent.' 
+                  : 'Emergency alert will be sent to your parent with your location.'}
               </Text>
             </View>
           </View>
+          <Icon name="chevron-right" color={colors.textMuted} size={18} />
         </View>
-
-        {/* SOS Alert Status text */}
-        {sosActive ? (
-          <View style={styles.sosAlertBox}>
-            <Text style={styles.sosAlertTitle}>DISTRESS ALARM BROADCASTING</Text>
-            <Text style={styles.sosAlertText}>GPS coordinates and emergency alerts have been transmitted to your Parent's device.</Text>
-            <TouchableOpacity style={styles.cancelSosBtn} onPress={handleCancelSOS}>
-              <Text style={styles.cancelSosText}>Cancel SOS Alarm</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <Text style={styles.sosStatusText}>
-            {isPressing
-              ? 'Keep holding to broadcast emergency distress alarm'
-              : 'Press and hold button for 3 seconds to trigger panic SOS'}
-          </Text>
-        )}
 
         {/* Unlink Device Button */}
         <TouchableOpacity style={styles.unlinkBtn} onPress={() => setShowUnlinkModal(true)}>
           <Text style={styles.unlinkBtnText}>Unlink and Disassociate Device</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* 6. Bottom Navigation Bar */}
+      <View style={styles.bottomNav}>
+        <TouchableOpacity style={styles.navItem}>
+          <Icon name="home" color={colors.purpleAccent} size={22} />
+          <Text style={[styles.navText, { color: colors.purpleAccent }]}>Overview</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navItem}>
+          <Icon name="schedule" color={colors.textMuted} size={22} />
+          <Text style={styles.navText}>Screen Time</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navItem}>
+          <Icon name="apps" color={colors.textMuted} size={22} />
+          <Text style={styles.navText}>Apps</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navItem}>
+          <Icon name="notifications" color={colors.textMuted} size={22} />
+          <Text style={styles.navText}>Notifications</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navItem}>
+          <Icon name="person" color={colors.textMuted} size={22} />
+          <Text style={styles.navText}>Profile</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* PARENT PIN VERIFICATION MODAL */}
       <Modal transparent={true} visible={showUnlinkModal} animationType="fade" onRequestClose={() => setShowUnlinkModal(false)}>
@@ -347,26 +412,20 @@ export const ChildModeScreen: React.FC<ChildModeScreenProps> = ({ onUnlink }) =>
                 <Icon name="close" color={colors.textMuted} size={20} />
               </TouchableOpacity>
             </View>
-
-            <Text style={styles.modalDesc}>
-              Enter the parent verification PIN to unlink this device. (Default pairing PIN is 1234)
-            </Text>
-
+            <Text style={styles.modalDesc}>Enter your 4-digit Parent PIN to authorize unlinking this child device.</Text>
             <TextInput
               style={styles.pinInput}
-              placeholder="4-digit parent PIN"
+              placeholder="PIN"
               placeholderTextColor={colors.textMuted}
               value={enteredPin}
               onChangeText={setEnteredPin}
-              keyboardType="number-pad"
-              maxLength={4}
+              keyboardType="numeric"
               secureTextEntry={true}
+              maxLength={4}
             />
-
             {pinError.length > 0 && <Text style={styles.pinErrorText}>{pinError}</Text>}
-
             <TouchableOpacity style={styles.verifyBtn} onPress={handleVerifyUnlink}>
-              <Text style={styles.verifyBtnText}>Verify & Unlink</Text>
+              <Text style={styles.verifyBtnText}>Verify &amp; Unlink Device</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -382,221 +441,384 @@ const getStyles = (colors: any) => StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 40,
+    paddingTop: 10,
+    paddingBottom: 90, // extra padding for floating bottomNav
     maxWidth: 680,
     width: '100%',
     alignSelf: 'center',
   },
+  headerBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+    marginTop: 10,
+  },
+  headerBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  badgeDot: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.purpleAccent,
+  },
+  headerTitleCenter: {
+    alignItems: 'center',
+  },
+  headerTitle: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  headerSubtitle: {
+    color: colors.textMuted,
+    fontSize: 12,
+    marginTop: 2,
+  },
   profileHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 20,
+    padding: 16,
     marginBottom: 20,
   },
   avatarImage: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    borderWidth: 1,
-    borderColor: colors.border,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
   },
   profileTexts: {
-    marginLeft: 16,
     flex: 1,
+    marginLeft: 16,
   },
   profileName: {
     color: colors.text,
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
   },
   managedText: {
     color: colors.textMuted,
-    fontSize: 13,
-    marginTop: 4,
-  },
-  complianceBanner: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    marginBottom: 24,
-  },
-  complianceLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  complianceText: {
-    fontWeight: 'bold',
     fontSize: 12,
-    marginLeft: 8,
+    marginTop: 2,
+  },
+  systemStatusCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 20,
+  },
+  systemStatusLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  shieldIconBg: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  systemStatusTextContainer: {
+    marginLeft: 16,
+    flex: 1,
+  },
+  systemStatusLabel: {
+    color: colors.textMuted,
+    fontSize: 10,
+    fontWeight: 'bold',
     letterSpacing: 0.5,
   },
-  dotIndicator: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  sectionHeader: {
-    color: colors.textMuted,
-    fontSize: 11,
+  systemStatusValue: {
+    color: colors.greenSuccess,
+    fontSize: 18,
     fontWeight: 'bold',
-    letterSpacing: 1.0,
-    marginBottom: 12,
+    marginTop: 2,
   },
-  gridContainer: {
+  systemStatusDesc: {
+    color: colors.textMuted,
+    fontSize: 12,
+    marginTop: 2,
+  },
+  checkCircleBg: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dashboardGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    marginBottom: 24,
+    marginBottom: 20,
   },
-  gridCard: {
+  timeCard: {
     width: '48%',
     backgroundColor: colors.cardBackground,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: 14,
+    borderRadius: 20,
+    padding: 16,
+    alignItems: 'center',
+  },
+  cardHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    alignSelf: 'flex-start',
+    marginBottom: 12,
   },
-  cardIconBg: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+  cardHeaderTitle: {
+    color: colors.text,
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginLeft: 8,
+  },
+  circleContainer: {
+    position: 'relative',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 110,
+    height: 110,
+  },
+  circleTextContainer: {
+    position: 'absolute',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  cardInfo: {
-    marginLeft: 10,
-    flex: 1,
-  },
-  cardTitle: {
-    color: colors.textMuted,
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  cardValue: {
+  circleMainText: {
     color: colors.text,
-    fontSize: 13,
+    fontSize: 18,
     fontWeight: 'bold',
-    marginTop: 2,
   },
-  cardSub: {
+  circleSubText: {
     color: colors.textMuted,
     fontSize: 9,
-    marginTop: 1,
+    marginTop: 2,
   },
-  sosContainer: {
-    height: 200,
-    width: '100%',
+  appsCard: {
+    width: '48%',
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 20,
+    padding: 16,
+  },
+  appsList: {
+    marginTop: 8,
+  },
+  appRowItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  appRowLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  appBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
     justifyContent: 'center',
     alignItems: 'center',
-    position: 'relative',
+  },
+  appRowName: {
+    color: colors.text,
+    fontSize: 11,
+    fontWeight: '600',
+    marginLeft: 8,
+    flex: 1,
+  },
+  appRowTime: {
+    color: colors.textMuted,
+    fontSize: 11,
+  },
+  viewAllLink: {
+    color: colors.purpleAccent,
+    fontSize: 11,
+    fontWeight: '600',
+    textAlign: 'right',
+    marginTop: 8,
+  },
+  statGridCard: {
+    width: '48%',
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 20,
+    padding: 16,
     marginTop: 16,
   },
-  sosPulse: {
-    position: 'absolute',
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    borderWidth: 2,
+  statCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
   },
-  sosTouchArea: {
-    width: 130,
-    height: 130,
-    borderRadius: 65,
-    overflow: 'hidden',
-    zIndex: 2,
+  statCardTitle: {
+    color: colors.textMuted,
+    fontSize: 11,
+    fontWeight: 'bold',
+    marginLeft: 8,
   },
-  sosButton: {
-    width: '100%',
-    height: '100%',
+  statCardValue: {
+    color: colors.text,
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginVertical: 4,
+  },
+  statCardSub: {
+    color: colors.textMuted,
+    fontSize: 11,
+  },
+  batterySubRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  batterySubText: {
+    color: colors.greenSuccess,
+    fontSize: 11,
+    marginLeft: 4,
+    fontWeight: '600',
+  },
+  emergencyHelpCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 30,
+  },
+  emergencyHelpLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  sosButtonIndicatorContainer: {
+    position: 'relative',
     justifyContent: 'center',
     alignItems: 'center',
-    position: 'relative',
+    width: 68,
+    height: 68,
+  },
+  sosButtonIndicatorPulse: {
+    position: 'absolute',
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    borderWidth: 1.5,
+  },
+  sosButtonIndicator: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  sosButtonIndicatorText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '900',
   },
   sosProgressFill: {
     position: 'absolute',
-    left: 0,
     top: 0,
     bottom: 0,
-    zIndex: 1,
+    left: 0,
   },
-  sosButtonText: {
-    color: '#fff',
-    fontSize: 11,
-    fontWeight: '900',
-    textAlign: 'center',
-    marginTop: 6,
-    lineHeight: 14,
-    zIndex: 2,
+  emergencyHelpTexts: {
+    marginLeft: 16,
+    flex: 1,
   },
-  sosStatusText: {
-    textAlign: 'center',
-    fontSize: 12,
-    color: colors.textMuted,
-    marginTop: 12,
-    lineHeight: 16,
-    paddingHorizontal: 24,
-  },
-  sosAlertBox: {
-    backgroundColor: colors.redDanger + '10',
-    borderColor: colors.redDanger + '30',
-    borderWidth: 1,
-    borderRadius: 16,
-    padding: 16,
-    alignItems: 'center',
-    marginTop: 12,
-  },
-  sosAlertTitle: {
-    color: colors.redDanger,
-    fontWeight: 'bold',
-    fontSize: 13,
-    letterSpacing: 0.5,
-    marginBottom: 4,
-  },
-  sosAlertText: {
+  emergencyHelpTitle: {
     color: colors.text,
-    fontSize: 12,
-    textAlign: 'center',
-    lineHeight: 16,
-    marginBottom: 12,
-  },
-  cancelSosBtn: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    backgroundColor: colors.redDanger,
-  },
-  cancelSosText: {
-    color: '#fff',
+    fontSize: 15,
     fontWeight: 'bold',
-    fontSize: 12,
+  },
+  emergencyHelpSubtitle: {
+    color: colors.redDanger,
+    fontSize: 10,
+    fontWeight: 'bold',
+    marginTop: 2,
+  },
+  emergencyHelpDesc: {
+    color: colors.textMuted,
+    fontSize: 11,
+    marginTop: 4,
+    lineHeight: 14,
   },
   unlinkBtn: {
     width: '100%',
-    height: 52,
+    paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: colors.cardBackground,
     borderWidth: 1,
     borderColor: colors.border,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 40,
+    marginTop: 10,
+    marginBottom: 40,
   },
   unlinkBtnText: {
     color: colors.redDanger,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: 'bold',
+  },
+  bottomNav: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 64,
+    backgroundColor: colors.cardBackground,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    elevation: 8,
+    zIndex: 10,
+  },
+  navItem: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    flex: 1,
+  },
+  navText: {
+    fontSize: 9,
+    fontWeight: '600',
+    color: colors.textMuted,
+    marginTop: 4,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
-    paddingHorizontal: 32,
+    alignItems: 'center',
+    padding: 20,
   },
   modalContent: {
     borderRadius: 20,
@@ -605,16 +827,15 @@ const getStyles = (colors: any) => StyleSheet.create({
     borderColor: colors.border,
     padding: 20,
     alignItems: 'center',
-    maxWidth: 480,
     width: '100%',
-    alignSelf: 'center',
+    maxWidth: 400,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     width: '100%',
-    marginBottom: 8,
+    marginBottom: 10,
   },
   modalTitle: {
     color: colors.text,
@@ -625,13 +846,12 @@ const getStyles = (colors: any) => StyleSheet.create({
     color: colors.textMuted,
     fontSize: 12,
     textAlign: 'center',
-    lineHeight: 16,
-    marginVertical: 12,
+    marginVertical: 10,
   },
   pinInput: {
     width: '100%',
-    height: 56,
-    borderRadius: 8,
+    height: 50,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.background,
@@ -639,12 +859,13 @@ const getStyles = (colors: any) => StyleSheet.create({
     fontSize: 18,
     textAlign: 'center',
     letterSpacing: 8,
+    marginVertical: 8,
   },
   pinErrorText: {
     color: colors.redDanger,
     fontSize: 12,
     fontWeight: 'bold',
-    marginTop: 8,
+    marginTop: 5,
   },
   verifyBtn: {
     width: '100%',
