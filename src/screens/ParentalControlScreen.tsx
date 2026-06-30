@@ -746,12 +746,10 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
             <View style={styles.categoryCardContainer}>
               {categoryOrder
                 .filter(cat => {
-                  const exists = blockedCategories.hasOwnProperty(cat);
-                  const matchesSearch = cat.toLowerCase().includes(categorySearchQuery.toLowerCase());
-                  return exists && matchesSearch;
+                  return cat.toLowerCase().includes(categorySearchQuery.toLowerCase());
                 })
                 .map((category) => {
-                  const isBlocked = blockedCategories[category];
+                  const isBlocked = blockedCategories[category] || false;
                   return (
                     <View key={category} style={{ borderBottomWidth: 1, borderBottomColor: colors.border }}>
                       <TouchableOpacity
