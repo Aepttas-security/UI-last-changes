@@ -8,8 +8,7 @@ export interface DashboardMetrics {
 }
 
 // Set this to your local server IP or domain when deploying on a physical device.
-// When running on an Android Emulator, 10.0.2.2 points to your computer's localhost.
-const BASE_URL = Platform.OS === 'android' ? 'http://10.0.2.2:8001' : 'http://localhost:8001';
+const BASE_URL = 'http://192.168.39.211:8001';
 
 export const ScannerRepository = {
   /**

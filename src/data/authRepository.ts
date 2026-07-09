@@ -1,7 +1,7 @@
 
 // Parental Control Backend running on port 8002
-// PC Local IP: 192.168.29.107 — physical device must be on same WiFi
-const AUTH_BASE_URL = 'http://192.168.29.107:8002';
+// PC Local IP: 192.168.39.211 — physical device must be on same WiFi
+const AUTH_BASE_URL = 'http://192.168.39.211:8002';
 
 export interface LoginPayload {
   email: string;

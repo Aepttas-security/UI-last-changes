@@ -61,7 +61,7 @@ export function useApkScanner() {
    */
   const checkBackend = useCallback(async (): Promise<boolean> => {
     try {
-      const BASE_URL = Platform.OS === 'android' ? 'http://10.0.2.2:8001' : 'http://localhost:8001';
+      const BASE_URL = 'http://192.168.39.211:8001';
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 3000);
       const res = await fetch(`${BASE_URL}/api/dashboard`, { signal: controller.signal });
