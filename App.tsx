@@ -32,6 +32,8 @@ type ScreenName =
 
 import { useAppTheme } from './src/contexts/ThemeContext';
 
+import { useApkScanner } from './src/hooks/useApkScanner';
+
 function AppContent({ renderScreen }: { renderScreen: () => React.ReactNode }) {
   const { colors, mode } = useAppTheme();
   
@@ -50,6 +52,7 @@ function AppContent({ renderScreen }: { renderScreen: () => React.ReactNode }) {
 function App() {
   const [currentScreen, setCurrentScreen] = useState<ScreenName>('Login');
   const [signUpSuccessMessage, setSignUpSuccessMessage] = useState('');
+  const scanner = useApkScanner();
 
   const renderScreen = () => {
     switch (currentScreen) {
@@ -91,6 +94,7 @@ function App() {
             onOpenCallerIntelligence={() => setCurrentScreen('CallerIntelligence')}
             onOpenVulnerabilityDetection={() => setCurrentScreen('VulnerabilityDetection')}
             onOpenChildDashboard={() => setCurrentScreen('ChildDashboard')}
+            scanner={scanner}
           />
         );
       case 'GeoTracking':
@@ -98,7 +102,7 @@ function App() {
       case 'ParentalControl':
         return <ParentalControlScreen onBack={() => setCurrentScreen('Dashboard')} />;
       case 'MalwareAnalysis':
-        return <MalwareAnalysisScreen onBack={() => setCurrentScreen('Dashboard')} />;
+        return <MalwareAnalysisScreen onBack={() => setCurrentScreen('Dashboard')} scanner={scanner} />;
       case 'CallerIntelligence':
         return <CallerIntelligenceScreen onBack={() => setCurrentScreen('Dashboard')} />;
       case 'VulnerabilityDetection':

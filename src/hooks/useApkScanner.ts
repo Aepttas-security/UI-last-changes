@@ -44,6 +44,9 @@ export function useApkScanner() {
   const [quarantinedFiles, setQuarantinedFiles] = useState<any[]>([]);
   const [historyLogs, setHistoryLogs] = useState<any[]>([]);
   const [activeAlert, setActiveAlert] = useState<any | null>(null);
+  const [autoScanState, setAutoScanState] = useState<{ lastScanTimestamp: string | null }>({
+    lastScanTimestamp: null,
+  });
 
   // Local in-memory stores (React refs so they persist across renders without causing extra renders)
   const localScansRef = useRef<LocalScanResult[]>([]);
@@ -95,6 +98,13 @@ export function useApkScanner() {
 
     const maliciousAlert = scansLocal.find(s => s.status === 'Malicious');
     setActiveAlert(maliciousAlert ?? null);
+
+    const latestTime = historyLocal.length > 0
+      ? historyLocal[0].timestamp
+      : scansLocal.length > 0
+      ? scansLocal[0].timestamp
+      : null;
+    setAutoScanState({ lastScanTimestamp: latestTime });
   }, []);
 
   /**
@@ -118,6 +128,13 @@ export function useApkScanner() {
         setQuarantinedFiles(allQuarantine);
         setHistoryLogs(allHistory);
         setActiveAlert(alerts.length > 0 ? alerts[0] : null);
+
+        const latestTime = allHistory.length > 0
+          ? allHistory[0].timestamp
+          : allScans.length > 0
+          ? allScans[0].timestamp
+          : null;
+        setAutoScanState({ lastScanTimestamp: latestTime });
         return;
       } catch {
         // Fall through to local
@@ -376,6 +393,7 @@ export function useApkScanner() {
     quarantinedFiles,
     historyLogs,
     activeAlert,
+    autoScanState,
     backendAvailable,
     scanFile,
     quarantineFile,

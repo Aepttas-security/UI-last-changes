@@ -15,6 +15,7 @@ import Svg, { Circle, Line, Path, Defs, LinearGradient as SvgLinearGradient, Sto
 import { useAppTheme } from '../contexts/ThemeContext';
 import { colors } from '../styles/theme';
 import { Icon } from '../components/Icon';
+import { useApkScanner } from '../hooks/useApkScanner';
 
 interface DashboardScreenProps {
   onSignOut: () => void;
@@ -24,6 +25,7 @@ interface DashboardScreenProps {
   onOpenCallerIntelligence: () => void;
   onOpenVulnerabilityDetection: () => void;
   onOpenChildDashboard: () => void;
+  scanner: ReturnType<typeof useApkScanner>;
 }
 
 export const DashboardScreen: React.FC<DashboardScreenProps> = ({
@@ -34,9 +36,36 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
   onOpenCallerIntelligence,
   onOpenVulnerabilityDetection,
   onOpenChildDashboard,
+  scanner,
 }) => {
   const { colors, mode, toggleTheme } = useAppTheme();
   const styles = React.useMemo(() => getStyles(colors), [colors]);
+
+  const score = scanner.dashboardMetrics?.device_security_score ?? 100;
+  const totalScanned = scanner.dashboardMetrics?.total_scanned ?? 0;
+  const threatsDetected = scanner.dashboardMetrics?.threats_detected ?? 0;
+  const quarantinedFiles = scanner.dashboardMetrics?.quarantined_files ?? 0;
+  const lastScanTimestamp = scanner.autoScanState?.lastScanTimestamp;
+
+  const isProtected = threatsDetected === 0 && quarantinedFiles === 0;
+
+  const formatRelativeTime = (timestampStr: string | null) => {
+    if (!timestampStr) return 'Never scanned';
+    const date = new Date(timestampStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    if (isNaN(diffMs) || diffMs < 0) return 'Just now';
+    
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} min ago`;
+    
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    
+    const diffDays = Math.floor(diffHours / 24);
+    return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+  };
 
   const [activeTab, setActiveTab] = useState('Home');
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -137,19 +166,23 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
             <View style={styles.statusDetails}>
               <Text style={styles.statusLabelText}>YOUR DEVICE IS</Text>
               <View style={styles.protectedRow}>
-                <Text style={styles.protectedText}>PROTECTED</Text>
-                <View style={styles.checkBadge}>
-                  <Icon name="check" color="#fff" size={10} />
+                <Text style={[styles.protectedText, !isProtected && { color: colors.redDanger }]}>
+                  {isProtected ? 'PROTECTED' : 'AT RISK'}
+                </Text>
+                <View style={[styles.checkBadge, !isProtected && { backgroundColor: colors.redDanger }]}>
+                  <Icon name={isProtected ? 'check' : 'warning'} color="#fff" size={10} />
                 </View>
               </View>
               <Text style={styles.scoreLabel}>Security Score</Text>
               <View style={styles.scoreRow}>
-                <Text style={styles.scoreBig}>98</Text>
+                <Text style={styles.scoreBig}>{score}</Text>
                 <Text style={styles.scoreSmall}>/100</Text>
               </View>
               <View style={styles.scanTimeRow}>
-                <Text style={styles.scanTimeText}>Last scanned: 2 min ago </Text>
-                <Icon name="refresh" color="#d1d5db" size={12} />
+                <Text style={styles.scanTimeText}>Last scanned: {formatRelativeTime(lastScanTimestamp)}</Text>
+                <TouchableOpacity onPress={() => scanner.refreshData()} style={{ marginLeft: 4 }}>
+                  <Icon name="refresh" color="#d1d5db" size={12} />
+                </TouchableOpacity>
               </View>
             </View>
           </View>
@@ -159,26 +192,28 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
         <View style={styles.statsContainer}>
           <View style={styles.statItem}>
             <Icon name="report" color={colors.redDanger} size={20} />
-            <Text style={styles.statValue}>32</Text>
-            <Text style={styles.statLabel}>Threats{'\n'}Blocked</Text>
+            <Text style={styles.statValue}>{threatsDetected}</Text>
+            <Text style={styles.statLabel}>Threats{'\n'}Detected</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
             <Icon name="inventory" color={colors.purpleAccent} size={20} />
-            <Text style={styles.statValue}>1.24K</Text>
+            <Text style={styles.statValue}>
+              {totalScanned >= 1000 ? `${(totalScanned / 1000).toFixed(2)}K` : totalScanned}
+            </Text>
             <Text style={styles.statLabel}>APKs{'\n'}Scanned</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
             <Icon name="warning-amber" color={colors.orangeWarning} size={20} />
-            <Text style={styles.statValue}>2</Text>
-            <Text style={styles.statLabel}>Vulnerabilities{'\n'}Found</Text>
+            <Text style={styles.statValue}>{quarantinedFiles}</Text>
+            <Text style={styles.statLabel}>Quarantined{'\n'}Files</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
             <Icon name="shield" color={colors.cyanAccent} size={20} />
-            <Text style={styles.statValue}>15.6 GB</Text>
-            <Text style={styles.statLabel}>Data{'\n'}Protected</Text>
+            <Text style={styles.statValue}>2</Text>
+            <Text style={styles.statLabel}>Vulnerabilities{'\n'}Found</Text>
           </View>
         </View>
 
