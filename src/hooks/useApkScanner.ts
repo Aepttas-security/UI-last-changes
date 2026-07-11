@@ -123,16 +123,35 @@ export function useApkScanner() {
           DashboardRepository.getActiveAlerts(),
         ]);
 
-        setDashboardMetrics(metrics);
-        setScans(allScans);
-        setQuarantinedFiles(allQuarantine);
-        setHistoryLogs(allHistory);
+        // Merge local cache (new scans/actions) at the front, rendering them first
+        const mergedScans = [
+          ...localScansRef.current,
+          ...allScans.filter((s: any) => !localScansRef.current.some(ls => ls.id === s.id))
+        ];
+        const mergedQuarantine = [
+          ...localQuarantineRef.current,
+          ...allQuarantine.filter((q: any) => !localQuarantineRef.current.some(lq => lq.id === q.id))
+        ];
+        const mergedHistory = [
+          ...localHistoryRef.current,
+          ...allHistory.filter((h: any) => !localHistoryRef.current.some(lh => lh.id === h.id))
+        ];
+
+        setDashboardMetrics({
+          total_scanned: mergedScans.length + mergedHistory.length,
+          threats_detected: mergedScans.filter(s => s.status !== 'Safe').length,
+          quarantined_files: mergedQuarantine.length,
+          device_security_score: metrics.device_security_score,
+        });
+        setScans(mergedScans);
+        setQuarantinedFiles(mergedQuarantine);
+        setHistoryLogs(mergedHistory);
         setActiveAlert(alerts.length > 0 ? alerts[0] : null);
 
-        const latestTime = allHistory.length > 0
-          ? allHistory[0].timestamp
-          : allScans.length > 0
-          ? allScans[0].timestamp
+        const latestTime = mergedHistory.length > 0
+          ? mergedHistory[0].timestamp
+          : mergedScans.length > 0
+          ? mergedScans[0].timestamp
           : null;
         setAutoScanState({ lastScanTimestamp: latestTime });
         return;
