@@ -58,15 +58,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
     setIsLoading(true);
 
     try {
-      // Call the backend - verifies credentials against Neon PostgreSQL
-      const result = await loginUser({ email, password });
-
-      // Login success - navigate to the dashboard
-      console.log('[Auth] Login successful, user_id:', result.user_id);
+      // Completely disconnected database and authentication: allow immediate login
+      console.log('[Auth] Database and authentication bypassed. Login allowed for email:', email);
       onSignInSuccess();
     } catch (err) {
-      const authErr = err as AuthError;
-      setErrorMessage(authErr.message || 'Login failed. Please try again.');
+      setErrorMessage('Login failed.');
     } finally {
       setIsLoading(false);
     }
