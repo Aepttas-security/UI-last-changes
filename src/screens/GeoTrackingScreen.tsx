@@ -76,7 +76,7 @@ interface NearbyPlace {
 // UI Integration Constants
 // ----------------------------------------------------
 const BACKEND_IP = '192.168.39.211';
-const API_BASE = `http://${BACKEND_IP}:8002/api/geolocation`;
+const API_BASE = `http://${BACKEND_IP}:8003/api/v1/geolocation`;
 const DEVICE_ID = 'abc123_device';
 
 // Mock Locations for testing
@@ -199,19 +199,25 @@ export const GeoTrackingScreen: React.FC<{ onBack: () => void }> = ({ onBack }) 
     setIsLoadingHistory(true);
     try {
       // 1. Fetch Latest Location
-      const currentRes = await fetch(`${API_BASE}/current?device_id=${DEVICE_ID}`);
+      const currentRes = await fetch(`${API_BASE}/current`);
       if (currentRes.ok) {
-        const currentData = await currentRes.json();
-        setLatestLocation(currentData);
+        const json = await currentRes.json();
+        if (json.status === 'success' && json.data) {
+          setLatestLocation(json.data);
+        } else {
+          setLatestLocation(null);
+        }
       } else {
         setLatestLocation(null);
       }
 
       // 2. Fetch Location History
-      const historyRes = await fetch(`${API_BASE}/location-history?device_id=${DEVICE_ID}`);
+      const historyRes = await fetch(`${API_BASE}/history`);
       if (historyRes.ok) {
-        const historyData = await historyRes.json();
-        setSavedHistory(historyData);
+        const json = await historyRes.json();
+        if (json.status === 'success' && json.history) {
+          setSavedHistory(json.history);
+        }
       }
     } catch (e) {
       console.warn("Unable to connect to database for location data fetching. Using local mock fallbacks.");
@@ -231,24 +237,30 @@ export const GeoTrackingScreen: React.FC<{ onBack: () => void }> = ({ onBack }) 
     const savePayload = {
       latitude: currentMockLoc.latitude,
       longitude: currentMockLoc.longitude,
+      is_mock_location: false,
       accuracy: 10.0,
+      device_id: DEVICE_ID,
     };
 
     try {
-      const response = await fetch(`${API_BASE}/save`, {
+      const response = await fetch(`${API_BASE}/current`, {
         method: 'POST',
         headers: {
-          'X-Device-ID': DEVICE_ID,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(savePayload),
       });
 
       if (response.ok) {
-        const savedData = await response.json();
-        setLatestLocation(savedData);
-        setSavedHistory(prev => [savedData, ...prev]);
-        Alert.alert("Success", `Saved location: ${savedData.address}`);
+        const json = await response.json();
+        if (json.status === 'success' && json.data) {
+          const savedData = json.data;
+          setLatestLocation(savedData);
+          setSavedHistory(prev => [savedData, ...prev]);
+          Alert.alert("Success", `Saved location: ${savedData.address}`);
+        } else {
+          throw new Error("Invalid response format");
+        }
       } else {
         throw new Error("Server returned non-200 status");
       }
