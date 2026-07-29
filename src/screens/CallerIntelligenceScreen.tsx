@@ -103,6 +103,7 @@ export const CallerIntelligenceScreen: React.FC<CallerIntelligenceScreenProps> =
 
   // Simulator
   const [activeSimulatedCall, setActiveSimulatedCall] = useState<MockCall | null>(null);
+  const [realDetectionActive, setRealDetectionActive] = useState(true);
   const [callState, setCallState] = useState<'ringing' | 'answered'>('ringing');
   const [callDuration, setCallDuration] = useState(0);
 
@@ -221,6 +222,37 @@ export const CallerIntelligenceScreen: React.FC<CallerIntelligenceScreenProps> =
           <Text style={styles.headerTitle}>Caller Intelligence</Text>
           <Text style={styles.headerSubtitle}>Real-Time Call Shield & Spam Analysis Hub</Text>
         </View>
+      </View>
+
+      {/* Real Detection Active Banner */}
+      <View style={[
+        styles.detectionBanner,
+        {
+          borderColor: realDetectionActive ? '#10B981' : '#EF4444',
+          backgroundColor: realDetectionActive ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.08)'
+        }
+      ]}>
+        <View style={styles.detectionBannerLeft}>
+          <View style={[styles.detectionDot, { backgroundColor: realDetectionActive ? '#10B981' : '#EF4444' }]} />
+          <View style={[styles.detectionDot, { backgroundColor: realDetectionActive ? '#EF4444' : '#6B6E85' }]} />
+          <Text style={styles.detectionBannerText}>
+            {realDetectionActive ? 'Real Detection Active' : 'Real Detection Paused'}
+          </Text>
+        </View>
+        <TouchableOpacity
+          style={[
+            styles.detectionBannerBtn,
+            { backgroundColor: realDetectionActive ? '#06b6d4' : '#10B981' }
+          ]}
+          onPress={() => {
+            setRealDetectionActive(!realDetectionActive);
+            showToast(realDetectionActive ? 'Real-time call shield paused' : 'Real-time call shield activated');
+          }}
+        >
+          <Text style={styles.detectionBannerBtnText}>
+            {realDetectionActive ? 'Stop' : 'Start'}
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {/* Tabs Row */}
@@ -2080,5 +2112,42 @@ const getStyles = (colors: any) => StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 13,
     marginLeft: 6,
+  },
+  detectionBanner: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginHorizontal: 16,
+    marginBottom: 12,
+  },
+  detectionBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  detectionDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 6,
+  },
+  detectionBannerText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: 'bold',
+    marginLeft: 4,
+  },
+  detectionBannerBtn: {
+    borderRadius: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+  },
+  detectionBannerBtnText: {
+    color: '#000000',
+    fontWeight: 'bold',
+    fontSize: 12,
   },
 });
