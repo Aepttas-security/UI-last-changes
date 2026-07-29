@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -103,6 +103,39 @@ export const CallerIntelligenceScreen: React.FC<CallerIntelligenceScreenProps> =
 
   // Simulator
   const [activeSimulatedCall, setActiveSimulatedCall] = useState<MockCall | null>(null);
+  const [callState, setCallState] = useState<'ringing' | 'answered'>('ringing');
+  const [callDuration, setCallDuration] = useState(0);
+
+  useEffect(() => {
+    let timeout: any = null;
+    if (activeSimulatedCall && callState === 'ringing') {
+      timeout = setTimeout(() => {
+        setCallState('answered');
+      }, 3500); // Ring for 3.5 seconds before auto-answering
+    }
+    return () => {
+      if (timeout) clearTimeout(timeout);
+    };
+  }, [activeSimulatedCall, callState]);
+
+  useEffect(() => {
+    let interval: any = null;
+    if (callState === 'answered' && activeSimulatedCall) {
+      setCallDuration(0);
+      interval = setInterval(() => {
+        setCallDuration(prev => prev + 1);
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [callState, activeSimulatedCall]);
+
+  const formatDuration = (sec: number) => {
+    const mins = Math.floor(sec / 60);
+    const secs = sec % 60;
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  };
 
   // Popups
   const [showSpamWarning, setShowSpamWarning] = useState(false);
@@ -126,6 +159,8 @@ export const CallerIntelligenceScreen: React.FC<CallerIntelligenceScreenProps> =
 
   const handleSimulateCall = (call: MockCall) => {
     setActiveSimulatedCall(call);
+    setCallState('ringing');
+    setCallDuration(0);
   };
 
   const handleSearch = () => {
@@ -436,127 +471,204 @@ export const CallerIntelligenceScreen: React.FC<CallerIntelligenceScreenProps> =
 
             {/* Simulated Active Call Screen */}
             {activeSimulatedCall ? (
-              <View style={styles.simPopupContainer}>
-                {/* Header blue gradient block */}
-                <LinearGradient
-                  colors={['#172a5a', '#0d1630']}
-                  style={styles.simPopupHeaderCard}
-                >
-                  {/* Close button in top-right */}
-                  <TouchableOpacity 
-                    style={styles.simPopupCloseBtn}
-                    onPress={() => setActiveSimulatedCall(null)}
+              callState === 'ringing' ? (
+                <View style={styles.simPopupContainer}>
+                  {/* Header blue gradient block */}
+                  <LinearGradient
+                    colors={['#172a5a', '#0d1630']}
+                    style={styles.simPopupHeaderCard}
                   >
-                    <Icon name="close" color="rgba(255, 255, 255, 0.4)" size={18} />
-                  </TouchableOpacity>
+                    {/* Close button in top-right */}
+                    <TouchableOpacity 
+                      style={styles.simPopupCloseBtn}
+                      onPress={() => setActiveSimulatedCall(null)}
+                    >
+                      <Icon name="close" color="rgba(255, 255, 255, 0.4)" size={18} />
+                    </TouchableOpacity>
 
-                  {/* Circular Avatar */}
-                  <View style={styles.simPopupAvatar}>
-                    <Icon name="arrow-upward" color="#fff" size={28} />
-                  </View>
+                    {/* Circular Avatar */}
+                    <View style={styles.simPopupAvatar}>
+                      <Icon name="arrow-upward" color="#fff" size={28} />
+                    </View>
 
-                  {/* Name, Number, Carrier info */}
-                  <Text style={styles.simPopupName}>{activeSimulatedCall.name}</Text>
-                  <Text style={styles.simPopupNumber}>{activeSimulatedCall.number}</Text>
-                  <Text style={styles.simPopupSub}>
-                    {activeSimulatedCall.carrier || 'Unknown'} • {activeSimulatedCall.location || 'Unknown'}
-                  </Text>
-                </LinearGradient>
-
-                {/* Score details block */}
-                <View style={styles.simPopupScoreBlock}>
-                  {/* Left: Risk Score */}
-                  <View style={styles.simPopupScoreLeft}>
-                    <Text style={[
-                      styles.simPopupScoreNum,
-                      {
-                        color:
-                          activeSimulatedCall.riskScore > 75
-                            ? '#EF4444' // Red
-                            : activeSimulatedCall.riskScore > 30
-                            ? '#F59E0B' // Yellow
-                            : '#10B981' // Green
-                      }
-                    ]}>
-                      {activeSimulatedCall.riskScore}
+                    {/* Name, Number, Carrier info */}
+                    <Text style={styles.simPopupName}>{activeSimulatedCall.name}</Text>
+                    <Text style={styles.simPopupNumber}>{activeSimulatedCall.number}</Text>
+                    <Text style={styles.simPopupSub}>
+                      {activeSimulatedCall.carrier || 'Unknown'} • {activeSimulatedCall.location || 'Unknown'}
                     </Text>
-                    <Text style={styles.simPopupScoreLabel}>Risk Score</Text>
-                  </View>
+                  </LinearGradient>
 
-                  {/* Right: Metrics */}
-                  <View style={styles.simPopupScoreRight}>
-                    <Text style={[
-                      styles.simPopupLevelText,
-                      {
-                        color:
-                          activeSimulatedCall.riskScore > 75
-                            ? '#EF4444'
-                            : activeSimulatedCall.riskScore > 30
-                            ? '#F59E0B'
-                            : '#10B981'
-                      }
-                    ]}>
-                      {activeSimulatedCall.riskScore > 75
-                        ? 'High'
-                        : activeSimulatedCall.riskScore > 30
-                        ? 'Medium'
-                        : 'Low'}
-                    </Text>
-                    
-                    <Text style={styles.simPopupMetricText}>
-                      📊 {activeSimulatedCall.riskScore > 50 ? '12' : '0'} spam reports
-                    </Text>
-                    <Text style={styles.simPopupMetricText}>
-                      ⭐ {activeSimulatedCall.riskScore > 75 ? '1' : activeSimulatedCall.riskScore > 30 ? '3' : '5'} reputation
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Footer Actions */}
-                <View style={styles.simPopupActions}>
-                  <TouchableOpacity
-                    style={[styles.simPopupBtn, { backgroundColor: '#3B82F6' }]}
-                    onPress={() => {
-                      showToast(`Viewing profile of ${activeSimulatedCall.name}`);
-                    }}
-                  >
-                    <Icon name="person" color="#fff" size={16} />
-                    <Text style={styles.simPopupBtnText}>Profile</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.simPopupBtn, { backgroundColor: '#EF4444' }]}
-                    onPress={() => {
-                      setBlockedNumbers([
-                        ...blockedNumbers,
+                  {/* Score details block */}
+                  <View style={styles.simPopupScoreBlock}>
+                    {/* Left: Risk Score */}
+                    <View style={styles.simPopupScoreLeft}>
+                      <Text style={[
+                        styles.simPopupScoreNum,
                         {
-                          number: activeSimulatedCall.number,
-                          name: activeSimulatedCall.name,
-                          reason: 'User Blocked from simulator popup',
-                          date: 'Today',
+                          color:
+                            activeSimulatedCall.riskScore > 75
+                              ? '#EF4444' // Red
+                              : activeSimulatedCall.riskScore > 30
+                              ? '#F59E0B' // Yellow
+                              : '#10B981' // Green
                         }
-                      ]);
-                      showToast('Caller Blocked');
-                      setActiveSimulatedCall(null);
-                    }}
-                  >
-                    <Icon name="block" color="#fff" size={16} />
-                    <Text style={styles.simPopupBtnText}>Block</Text>
-                  </TouchableOpacity>
+                      ]}>
+                        {activeSimulatedCall.riskScore}
+                      </Text>
+                      <Text style={styles.simPopupScoreLabel}>Risk Score</Text>
+                    </View>
 
-                  <TouchableOpacity
-                    style={[styles.simPopupBtn, { backgroundColor: '#F59E0B' }]}
-                    onPress={() => {
-                      setCallerToBlockOrReport(activeSimulatedCall);
-                      setReportDesc('');
-                      setShowReportPopup(true);
-                    }}
-                  >
-                    <Icon name="flag" color="#fff" size={16} />
-                    <Text style={styles.simPopupBtnText}>Report</Text>
-                  </TouchableOpacity>
+                    {/* Right: Metrics */}
+                    <View style={styles.simPopupScoreRight}>
+                      <Text style={[
+                        styles.simPopupLevelText,
+                        {
+                          color:
+                            activeSimulatedCall.riskScore > 75
+                              ? '#EF4444'
+                              : activeSimulatedCall.riskScore > 30
+                              ? '#F59E0B'
+                              : '#10B981'
+                        }
+                      ]}>
+                        {activeSimulatedCall.riskScore > 75
+                          ? 'High'
+                          : activeSimulatedCall.riskScore > 30
+                          ? 'Medium'
+                          : 'Low'}
+                      </Text>
+                      
+                      <Text style={styles.simPopupMetricText}>
+                        📊 {activeSimulatedCall.riskScore > 50 ? '12' : '0'} spam reports
+                      </Text>
+                      <Text style={styles.simPopupMetricText}>
+                        ⭐ {activeSimulatedCall.riskScore > 75 ? '1' : activeSimulatedCall.riskScore > 30 ? '3' : '5'} reputation
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Footer Actions */}
+                  <View style={styles.simPopupActions}>
+                    <TouchableOpacity
+                      style={[styles.simPopupBtn, { backgroundColor: '#3B82F6' }]}
+                      onPress={() => {
+                        setCallState('answered'); // Instantly answer on Profile/View click
+                      }}
+                    >
+                      <Icon name="person" color="#fff" size={16} />
+                      <Text style={styles.simPopupBtnText}>Profile</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.simPopupBtn, { backgroundColor: '#EF4444' }]}
+                      onPress={() => {
+                        setBlockedNumbers([
+                          ...blockedNumbers,
+                          {
+                            number: activeSimulatedCall.number,
+                            name: activeSimulatedCall.name,
+                            reason: 'User Blocked from simulator popup',
+                            date: 'Today',
+                          }
+                        ]);
+                        showToast('Caller Blocked');
+                        setActiveSimulatedCall(null);
+                      }}
+                    >
+                      <Icon name="block" color="#fff" size={16} />
+                      <Text style={styles.simPopupBtnText}>Block</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.simPopupBtn, { backgroundColor: '#F59E0B' }]}
+                      onPress={() => {
+                        setCallerToBlockOrReport(activeSimulatedCall);
+                        setReportDesc('');
+                        setShowReportPopup(true);
+                      }}
+                    >
+                      <Icon name="flag" color="#fff" size={16} />
+                      <Text style={styles.simPopupBtnText}>Report</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
-              </View>
+              ) : (
+                /* CALL SUMMARY STATE (Mockup 2) */
+                <View style={styles.summaryCardContainer}>
+                  {/* Header: Call Summary */}
+                  <View style={styles.summaryHeader}>
+                    <Text style={styles.summaryHeaderTitle}>Call Summary</Text>
+                    <TouchableOpacity 
+                      style={styles.summaryCloseBtn}
+                      onPress={() => setActiveSimulatedCall(null)}
+                    >
+                      <Icon name="close" color="#FFFFFF" size={20} />
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Body Content */}
+                  <View style={styles.summaryBody}>
+                    <View style={styles.summaryStatusRow}>
+                      <Icon name="phone-in-talk" color="rgba(255,255,255,0.4)" size={20} />
+                      <Text style={styles.summaryStatusText}>ANSWERED</Text>
+                    </View>
+
+                    <Text style={styles.summaryNumber}>{activeSimulatedCall.number}</Text>
+                    <Text style={styles.summaryName}>{activeSimulatedCall.name || 'Unknown'}</Text>
+                    
+                    <View style={styles.summaryTimeRow}>
+                      <Icon name="schedule" color="rgba(255,255,255,0.4)" size={16} />
+                      <Text style={styles.summaryTimeText}>{formatDuration(callDuration)}</Text>
+                    </View>
+                  </View>
+
+                  {/* Footer Actions */}
+                  <View style={styles.summaryActions}>
+                    <TouchableOpacity
+                      style={[styles.summaryBtn, { backgroundColor: '#3B82F6' }]}
+                      onPress={() => {
+                        showToast(`Viewing profile of ${activeSimulatedCall.name}`);
+                      }}
+                    >
+                      <Icon name="person" color="#fff" size={16} />
+                      <Text style={styles.summaryBtnText}>Profile</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.summaryBtn, { backgroundColor: '#EF4444' }]}
+                      onPress={() => {
+                        setBlockedNumbers([
+                          ...blockedNumbers,
+                          {
+                            number: activeSimulatedCall.number,
+                            name: activeSimulatedCall.name,
+                            reason: 'User Blocked from Call Summary',
+                            date: 'Today',
+                          }
+                        ]);
+                        showToast('Caller Blocked');
+                        setActiveSimulatedCall(null);
+                      }}
+                    >
+                      <Icon name="block" color="#fff" size={16} />
+                      <Text style={styles.summaryBtnText}>Block</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.summaryBtn, { backgroundColor: '#F59E0B' }]}
+                      onPress={() => {
+                        setCallerToBlockOrReport(activeSimulatedCall);
+                        setReportDesc('');
+                        setShowReportPopup(true);
+                      }}
+                    >
+                      <Icon name="flag" color="#fff" size={16} />
+                      <Text style={styles.summaryBtnText}>Report</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )
             ) : (
               <View style={styles.callScreenCardEmpty}>
                 <Icon name="phone-in-talk" color="#6B6E85" size={48} />
@@ -1886,6 +1998,84 @@ const getStyles = (colors: any) => StyleSheet.create({
     alignItems: 'center',
   },
   simPopupBtnText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    fontSize: 13,
+    marginLeft: 6,
+  },
+  summaryCardContainer: {
+    width: '100%',
+    borderRadius: 20,
+    backgroundColor: '#1E1B3D',
+    padding: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    marginTop: 10,
+  },
+  summaryHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 28,
+  },
+  summaryHeaderTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  summaryCloseBtn: {
+    padding: 4,
+  },
+  summaryBody: {
+    alignItems: 'center',
+    marginBottom: 28,
+  },
+  summaryStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  summaryStatusText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: 'rgba(255, 255, 255, 0.5)',
+    marginLeft: 8,
+    letterSpacing: 1,
+  },
+  summaryNumber: {
+    fontSize: 26,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  summaryName: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.5)',
+    marginBottom: 12,
+  },
+  summaryTimeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  summaryTimeText: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.4)',
+    marginLeft: 6,
+  },
+  summaryActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  summaryBtn: {
+    flex: 0.31,
+    height: 42,
+    borderRadius: 21,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  summaryBtnText: {
     color: '#FFFFFF',
     fontWeight: 'bold',
     fontSize: 13,
