@@ -126,13 +126,6 @@ export const CallerIntelligenceScreen: React.FC<CallerIntelligenceScreenProps> =
 
   const handleSimulateCall = (call: MockCall) => {
     setActiveSimulatedCall(call);
-    if (call.type === 'Spam') {
-      setShowSpamWarning(true);
-    } else if (call.type === 'Scam') {
-      setShowScamAlert(true);
-    } else if (call.type === 'High-Risk') {
-      setShowHighRiskAlert(true);
-    }
   };
 
   const handleSearch = () => {
@@ -443,75 +436,124 @@ export const CallerIntelligenceScreen: React.FC<CallerIntelligenceScreenProps> =
 
             {/* Simulated Active Call Screen */}
             {activeSimulatedCall ? (
-              <View style={[styles.callScreenCard, {
-                backgroundColor: activeSimulatedCall.type === 'Spam' || activeSimulatedCall.type === 'Scam' || activeSimulatedCall.type === 'High-Risk' 
-                  ? 'rgba(239, 68, 68, 0.2)' 
-                  : activeSimulatedCall.type === 'Normal' 
-                  ? 'rgba(16, 185, 129, 0.2)' 
-                  : activeSimulatedCall.type === 'Suspicious' 
-                  ? 'rgba(245, 158, 11, 0.2)' 
-                  : '#0b0f19'
-              }]}>
-                <Icon name="phone-in-talk" color={
-                  activeSimulatedCall.type === 'Spam' || activeSimulatedCall.type === 'Scam' || activeSimulatedCall.type === 'High-Risk' 
-                    ? colors.redDanger 
-                    : activeSimulatedCall.type === 'Normal' 
-                    ? colors.greenSuccess 
-                    : activeSimulatedCall.type === 'Suspicious' 
-                    ? colors.orangeWarning 
-                    : colors.purpleAccent
-                } size={48} />
-                <Text style={styles.callScreenName}>{activeSimulatedCall.name}</Text>
-                <Text style={styles.callScreenNumber}>{activeSimulatedCall.number}</Text>
-                <Text style={styles.callScreenCarrier}>
-                  Carrier: {activeSimulatedCall.carrier} | {activeSimulatedCall.location}
-                </Text>
-                <Text
-                  style={[
-                    styles.callScreenScore,
-                    {
-                      color:
-                        activeSimulatedCall.riskScore > 80
-                          ? colors.redDanger
-                          : activeSimulatedCall.riskScore > 50
-                          ? colors.orangeWarning
-                          : colors.greenSuccess,
-                    },
-                  ]}
+              <View style={styles.simPopupContainer}>
+                {/* Header blue gradient block */}
+                <LinearGradient
+                  colors={['#172a5a', '#0d1630']}
+                  style={styles.simPopupHeaderCard}
                 >
-                  Risk Score: {activeSimulatedCall.riskScore}%
-                </Text>
+                  {/* Close button in top-right */}
+                  <TouchableOpacity 
+                    style={styles.simPopupCloseBtn}
+                    onPress={() => setActiveSimulatedCall(null)}
+                  >
+                    <Icon name="close" color="rgba(255, 255, 255, 0.4)" size={18} />
+                  </TouchableOpacity>
 
-                <View style={styles.callActionsRow}>
+                  {/* Circular Avatar */}
+                  <View style={styles.simPopupAvatar}>
+                    <Icon name="arrow-upward" color="#fff" size={28} />
+                  </View>
+
+                  {/* Name, Number, Carrier info */}
+                  <Text style={styles.simPopupName}>{activeSimulatedCall.name}</Text>
+                  <Text style={styles.simPopupNumber}>{activeSimulatedCall.number}</Text>
+                  <Text style={styles.simPopupSub}>
+                    {activeSimulatedCall.carrier || 'Unknown'} • {activeSimulatedCall.location || 'Unknown'}
+                  </Text>
+                </LinearGradient>
+
+                {/* Score details block */}
+                <View style={styles.simPopupScoreBlock}>
+                  {/* Left: Risk Score */}
+                  <View style={styles.simPopupScoreLeft}>
+                    <Text style={[
+                      styles.simPopupScoreNum,
+                      {
+                        color:
+                          activeSimulatedCall.riskScore > 75
+                            ? '#EF4444' // Red
+                            : activeSimulatedCall.riskScore > 30
+                            ? '#F59E0B' // Yellow
+                            : '#10B981' // Green
+                      }
+                    ]}>
+                      {activeSimulatedCall.riskScore}
+                    </Text>
+                    <Text style={styles.simPopupScoreLabel}>Risk Score</Text>
+                  </View>
+
+                  {/* Right: Metrics */}
+                  <View style={styles.simPopupScoreRight}>
+                    <Text style={[
+                      styles.simPopupLevelText,
+                      {
+                        color:
+                          activeSimulatedCall.riskScore > 75
+                            ? '#EF4444'
+                            : activeSimulatedCall.riskScore > 30
+                            ? '#F59E0B'
+                            : '#10B981'
+                      }
+                    ]}>
+                      {activeSimulatedCall.riskScore > 75
+                        ? 'High'
+                        : activeSimulatedCall.riskScore > 30
+                        ? 'Medium'
+                        : 'Low'}
+                    </Text>
+                    
+                    <Text style={styles.simPopupMetricText}>
+                      📊 {activeSimulatedCall.riskScore > 50 ? '12' : '0'} spam reports
+                    </Text>
+                    <Text style={styles.simPopupMetricText}>
+                      ⭐ {activeSimulatedCall.riskScore > 75 ? '1' : activeSimulatedCall.riskScore > 30 ? '3' : '5'} reputation
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Footer Actions */}
+                <View style={styles.simPopupActions}>
                   <TouchableOpacity
-                    style={[styles.callBtn, { backgroundColor: 'rgba(107, 110, 133, 0.2)' }]}
+                    style={[styles.simPopupBtn, { backgroundColor: '#3B82F6' }]}
                     onPress={() => {
-                      showToast(`Call allowed from ${activeSimulatedCall.name}`);
+                      showToast(`Viewing profile of ${activeSimulatedCall.name}`);
+                    }}
+                  >
+                    <Icon name="person" color="#fff" size={16} />
+                    <Text style={styles.simPopupBtnText}>Profile</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.simPopupBtn, { backgroundColor: '#EF4444' }]}
+                    onPress={() => {
+                      setBlockedNumbers([
+                        ...blockedNumbers,
+                        {
+                          number: activeSimulatedCall.number,
+                          name: activeSimulatedCall.name,
+                          reason: 'User Blocked from simulator popup',
+                          date: 'Today',
+                        }
+                      ]);
+                      showToast('Caller Blocked');
                       setActiveSimulatedCall(null);
                     }}
                   >
-                    <Text style={styles.callBtnText}>Allow</Text>
+                    <Icon name="block" color="#fff" size={16} />
+                    <Text style={styles.simPopupBtnText}>Block</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={[styles.callBtn, { backgroundColor: colors.redDanger }]}
-                    onPress={() => {
-                      setCallerToBlockOrReport(activeSimulatedCall);
-                      setShowBlockConfirmation(true);
-                    }}
-                  >
-                    <Text style={styles.callBtnText}>Block</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.callBtn, { backgroundColor: colors.cyanAccent }]}
+                    style={[styles.simPopupBtn, { backgroundColor: '#F59E0B' }]}
                     onPress={() => {
                       setCallerToBlockOrReport(activeSimulatedCall);
                       setReportDesc('');
                       setShowReportPopup(true);
                     }}
                   >
-                    <Text style={[styles.callBtnText, { color: '#000' }]}>Report</Text>
+                    <Icon name="flag" color="#fff" size={16} />
+                    <Text style={styles.simPopupBtnText}>Report</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -1735,5 +1777,118 @@ const getStyles = (colors: any) => StyleSheet.create({
   adSkipBtnText: {
     fontSize: 11,
     color: '#6b6e85',
+  },
+  simPopupContainer: {
+    width: '100%',
+    borderRadius: 20,
+    backgroundColor: '#1E1B3D',
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    marginTop: 10,
+  },
+  simPopupHeaderCard: {
+    width: '100%',
+    padding: 24,
+    alignItems: 'center',
+    position: 'relative',
+  },
+  simPopupCloseBtn: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  simPopupAvatar: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: '#3B82F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  simPopupName: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginTop: 12,
+  },
+  simPopupNumber: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.6)',
+    marginTop: 4,
+  },
+  simPopupSub: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.4)',
+    marginTop: 2,
+  },
+  simPopupScoreBlock: {
+    flexDirection: 'row',
+    backgroundColor: '#161330',
+    padding: 18,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  simPopupScoreLeft: {
+    flex: 0.4,
+    alignItems: 'center',
+    borderRightWidth: 1,
+    borderRightColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'center',
+  },
+  simPopupScoreNum: {
+    fontSize: 32,
+    fontWeight: 'bold',
+  },
+  simPopupScoreLabel: {
+    fontSize: 10,
+    color: 'rgba(255, 255, 255, 0.4)',
+    marginTop: 4,
+  },
+  simPopupScoreRight: {
+    flex: 0.6,
+    paddingLeft: 20,
+    justifyContent: 'center',
+  },
+  simPopupLevelText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 6,
+  },
+  simPopupMetricText: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.6)',
+    marginTop: 4,
+  },
+  simPopupActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: 16,
+    backgroundColor: '#0F0C24',
+  },
+  simPopupBtn: {
+    flex: 0.31,
+    height: 42,
+    borderRadius: 21,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  simPopupBtnText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    fontSize: 13,
+    marginLeft: 6,
   },
 });
