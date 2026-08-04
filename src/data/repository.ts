@@ -187,3 +187,62 @@ export const DashboardRepository = {
     return response.json();
   }
 };
+
+const GEO_BASE_URL = 'http://192.168.39.211:8003/api/v1/geolocation';
+
+export const GeolocationRepository = {
+  async getCurrentLocation(): Promise<any> {
+    const response = await fetch(`${GEO_BASE_URL}/current`);
+    if (!response.ok) throw new Error('Failed to retrieve current location.');
+    return response.json();
+  },
+
+  async updateCurrentLocation(payload: {
+    latitude: number;
+    longitude: number;
+    ip?: string;
+    is_mock_location?: boolean;
+    accuracy?: number;
+    provider?: string;
+    timestamp?: string;
+    device_id?: string;
+  }): Promise<any> {
+    const response = await fetch(`${GEO_BASE_URL}/current`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) throw new Error('Failed to update current location.');
+    return response.json();
+  },
+
+  async getLocationHistory(): Promise<any[]> {
+    const response = await fetch(`${GEO_BASE_URL}/history`);
+    if (!response.ok) throw new Error('Failed to retrieve location history.');
+    const json = await response.json();
+    return json.history || [];
+  },
+
+  async deleteHistoryEntry(): Promise<any> {
+    const response = await fetch(`${GEO_BASE_URL}/history`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) throw new Error('Failed to clear location history.');
+    return response.json();
+  },
+
+  async getNearbyPlaces(payload: { latitude: number; longitude: number; radius_km: number }): Promise<any[]> {
+    const response = await fetch(`${GEO_BASE_URL}/nearby`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) throw new Error('Failed to fetch nearby places.');
+    const json = await response.json();
+    return json.places || [];
+  }
+};

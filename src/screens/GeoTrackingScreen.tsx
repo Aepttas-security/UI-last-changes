@@ -17,11 +17,8 @@ import {
 import Svg, { Line, Circle } from 'react-native-svg';
 import { useAppTheme } from '../contexts/ThemeContext';
 import { colors } from '../styles/theme';
+import { GeolocationRepository } from '../data/repository';
 import { Icon } from '../components/Icon';
-
-// ----------------------------------------------------
-// Interfaces & Mock Data
-// ----------------------------------------------------
 
 interface GeoRequest {
   ip: string;
@@ -37,18 +34,6 @@ interface GeoRequest {
   latitude: string;
   longitude: string;
 }
-
-const allRequests: GeoRequest[] = [
-  { ip: '104.244.42.1', threatLevel: 'Safe', country: 'United States', city: 'San Francisco', isp: 'Twitter Inc.', latency: '35ms', timeAgo: '5m ago', timeCategory: '1H', xPercent: 0.20, yPercent: 0.35, latitude: '37.7749° N', longitude: '122.4194° W' },
-  { ip: '185.190.140.12', threatLevel: 'High Risk', country: 'Netherlands', city: 'Amsterdam', isp: 'Creanova Hosting', latency: '180ms', timeAgo: '12m ago', timeCategory: '1H', xPercent: 0.48, yPercent: 0.28, latitude: '52.3676° N', longitude: '4.9041° E' },
-  { ip: '13.107.4.50', threatLevel: 'Safe', country: 'Japan', city: 'Tokyo', isp: 'Microsoft Corp', latency: '85ms', timeAgo: '42m ago', timeCategory: '1H', xPercent: 0.82, yPercent: 0.38, latitude: '35.6762° N', longitude: '139.6503° E' },
-  { ip: '43.205.12.89', threatLevel: 'Suspicious', country: 'India', city: 'Mumbai', isp: 'Amazon Data Services', latency: '120ms', timeAgo: '3h ago', timeCategory: '24H', xPercent: 0.70, yPercent: 0.52, latitude: '19.0760° N', longitude: '72.8777° E' },
-  { ip: '185.220.101.5', threatLevel: 'High Risk', country: 'Germany', city: 'Frankfurt', isp: 'Tor Exit Node', latency: '210ms', timeAgo: '6h ago', timeCategory: '24H', xPercent: 0.50, yPercent: 0.32, latitude: '50.1109° N', longitude: '8.6821° E' },
-  { ip: '210.140.10.3', threatLevel: 'Safe', country: 'Japan', city: 'Osaka', isp: 'NTT Communications', latency: '98ms', timeAgo: '18h ago', timeCategory: '24H', xPercent: 0.84, yPercent: 0.42, latitude: '34.6937° N', longitude: '135.5023° E' },
-  { ip: '103.21.244.0', threatLevel: 'Safe', country: 'Singapore', city: 'Singapore', isp: 'Cloudflare Inc.', latency: '62ms', timeAgo: '2d ago', timeCategory: '7D', xPercent: 0.78, yPercent: 0.58, latitude: '1.3521° N', longitude: '103.8198° E' },
-  { ip: '91.198.174.192', threatLevel: 'Safe', country: 'France', city: 'Paris', isp: 'Wikimedia Foundation', latency: '110ms', timeAgo: '4d ago', timeCategory: '7D', xPercent: 0.46, yPercent: 0.33, latitude: '48.8566° N', longitude: '2.3522° E' },
-  { ip: '109.201.154.22', threatLevel: 'Suspicious', country: 'Russia', city: 'Moscow', isp: 'Rostelecom PJSC', latency: '195ms', timeAgo: '6d ago', timeCategory: '7D', xPercent: 0.56, yPercent: 0.26, latitude: '55.7558° N', longitude: '37.6173° E' }
-];
 
 interface SavedLocation {
   id: number;
@@ -96,7 +81,67 @@ export const GeoTrackingScreen: React.FC<{ onBack: () => void }> = ({ onBack }) 
   // Tab 1: Map Tracking States
   // ----------------------------------------------------
   const [selectedFilter, setSelectedFilter] = useState<'All' | '1H' | '24H' | '7D'>('All');
-  const [selectedRequest, setSelectedRequest] = useState<GeoRequest | null>(allRequests[1]); // Amsterdam default
+  const [allRequests, setAllRequests] = useState<GeoRequest[]>([]);
+  const [selectedRequest, setSelectedRequest] = useState<GeoRequest | null>(null);
+
+  useEffect(() => {
+    const loadMapData = async () => {
+      try {
+        const history = await GeolocationRepository.getLocationHistory();
+        if (history) {
+          const mapped: GeoRequest[] = history.map((item: any) => {
+            const lat = parseFloat(item.latitude);
+            const lon = parseFloat(item.longitude);
+            const xRaw = (lon + 180) / 360;
+            const yRaw = (90 - lat) / 180;
+            const xPercent = Math.max(0.05, Math.min(0.95, xRaw));
+            const yPercent = Math.max(0.05, Math.min(0.95, yRaw));
+            
+            // Map timeCategory
+            const date = new Date(item.timestamp);
+            const diffMs = Date.now() - date.getTime();
+            const diffHours = diffMs / 3600000;
+            let timeCategory: '1H' | '24H' | '7D' = '7D';
+            if (diffHours <= 1) timeCategory = '1H';
+            else if (diffHours <= 24) timeCategory = '24H';
+
+            // Format relative time
+            const diffMins = Math.floor(diffMs / 60000);
+            let timeAgo = 'Just now';
+            if (diffMins >= 1 && diffMins < 60) timeAgo = `${diffMins}m ago`;
+            else if (diffMins >= 60 && diffMins < 1440) timeAgo = `${Math.floor(diffMins / 60)}h ago`;
+            else if (diffMins >= 1440) timeAgo = `${Math.floor(diffMins / 1440)}d ago`;
+
+            return {
+              ip: item.ip || 'Unknown',
+              threatLevel: item.threat_level === 'High Risk' ? 'High Risk' : item.threat_level === 'Suspicious' ? 'Suspicious' : 'Safe',
+              country: item.country || 'Unknown',
+              city: item.city || 'Unknown',
+              isp: item.isp || 'N/A',
+              latency: item.accuracy ? `${Math.round(item.accuracy)}ms` : '65ms',
+              timeAgo,
+              timeCategory,
+              xPercent,
+              yPercent,
+              latitude: `${lat.toFixed(4)}°`,
+              longitude: `${lon.toFixed(4)}°`,
+            };
+          });
+          setAllRequests(mapped);
+          if (mapped.length > 0) {
+            setSelectedRequest(mapped[0]);
+          }
+        }
+      } catch (e) {
+        console.warn("Failed to load map data from history endpoint.");
+      }
+    };
+
+    if (activeTab === 'Map') {
+      loadMapData();
+    }
+  }, [activeTab]);
+
   const rotateAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(0.4)).current;
 
@@ -199,26 +244,16 @@ export const GeoTrackingScreen: React.FC<{ onBack: () => void }> = ({ onBack }) 
     setIsLoadingHistory(true);
     try {
       // 1. Fetch Latest Location
-      const currentRes = await fetch(`${API_BASE}/current`);
-      if (currentRes.ok) {
-        const json = await currentRes.json();
-        if (json.status === 'success' && json.data) {
-          setLatestLocation(json.data);
-        } else {
-          setLatestLocation(null);
-        }
+      const currentData = await GeolocationRepository.getCurrentLocation();
+      if (currentData && currentData.status === 'success' && currentData.data) {
+        setLatestLocation(currentData.data);
       } else {
         setLatestLocation(null);
       }
 
       // 2. Fetch Location History
-      const historyRes = await fetch(`${API_BASE}/history`);
-      if (historyRes.ok) {
-        const json = await historyRes.json();
-        if (json.status === 'success' && json.history) {
-          setSavedHistory(json.history);
-        }
-      }
+      const history = await GeolocationRepository.getLocationHistory();
+      setSavedHistory(history);
     } catch (e) {
       console.warn("Unable to connect to database for location data fetching. Using local mock fallbacks.");
     } finally {
@@ -243,26 +278,14 @@ export const GeoTrackingScreen: React.FC<{ onBack: () => void }> = ({ onBack }) 
     };
 
     try {
-      const response = await fetch(`${API_BASE}/current`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(savePayload),
-      });
-
-      if (response.ok) {
-        const json = await response.json();
-        if (json.status === 'success' && json.data) {
-          const savedData = json.data;
-          setLatestLocation(savedData);
-          setSavedHistory(prev => [savedData, ...prev]);
-          Alert.alert("Success", `Saved location: ${savedData.address}`);
-        } else {
-          throw new Error("Invalid response format");
-        }
+      const json = await GeolocationRepository.updateCurrentLocation(savePayload);
+      if (json.status === 'success' && json.data) {
+        const savedData = json.data;
+        setLatestLocation(savedData);
+        setSavedHistory(prev => [savedData, ...prev]);
+        Alert.alert("Success", `Saved location: ${savedData.address}`);
       } else {
-        throw new Error("Server returned non-200 status");
+        throw new Error("Invalid response format");
       }
     } catch (e) {
       // Local Mock Fallback when database is offline
@@ -314,22 +337,9 @@ export const GeoTrackingScreen: React.FC<{ onBack: () => void }> = ({ onBack }) 
     };
 
     try {
-      const response = await fetch(`${API_BASE}/nearby`, {
-        method: 'POST',
-        headers: {
-          'X-Device-ID': DEVICE_ID,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(nearbyPayload),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setNearbyPlaces(data.places || []);
-        setHasScannedNearby(true);
-      } else {
-        throw new Error("Server returned non-200 status");
-      }
+      const places = await GeolocationRepository.getNearbyPlaces(nearbyPayload);
+      setNearbyPlaces(places);
+      setHasScannedNearby(true);
     } catch (e) {
       console.warn("Nearby search API failed. Running local Haversine calculations in frontend.");
       
@@ -728,7 +738,39 @@ export const GeoTrackingScreen: React.FC<{ onBack: () => void }> = ({ onBack }) 
             )}
 
             {/* Saved Locations History List */}
-            <Text style={[styles.sectionHeaderTitle, { marginTop: 24 }]}>LOCATION LOG HISTORY</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 24, marginBottom: 8 }}>
+              <Text style={[styles.sectionHeaderTitle, { marginTop: 0 }]}>LOCATION LOG HISTORY</Text>
+              {savedHistory.length > 0 && (
+                <TouchableOpacity
+                  onPress={async () => {
+                    Alert.alert(
+                      "Clear History",
+                      "Are you sure you want to clear the entire location log history?",
+                      [
+                        { text: "Cancel", style: "cancel" },
+                        {
+                          text: "Clear All",
+                          style: "destructive",
+                          onPress: async () => {
+                            try {
+                              await GeolocationRepository.deleteHistoryEntry();
+                              setSavedHistory([]);
+                              setLatestLocation(null);
+                              setAllRequests([]);
+                              Alert.alert("Success", "Location history cleared successfully.");
+                            } catch (e) {
+                              Alert.alert("Error", "Failed to clear location history.");
+                            }
+                          }
+                        }
+                      ]
+                    );
+                  }}
+                >
+                  <Text style={{ color: colors.redDanger, fontSize: 12, fontWeight: 'bold' }}>Clear All</Text>
+                </TouchableOpacity>
+              )}
+            </View>
             {isLoadingHistory ? (
               <ActivityIndicator size="large" color={colors.purpleAccent} style={{ marginTop: 20 }} />
             ) : savedHistory.length > 0 ? (
