@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { ParentalRepository, BackendChild, ScreentimeDashboard, BackendApp, FilterRules, GeofenceZone, LocationTelemetry, ReportSummary } from '../data/parentalRepository';
+import { Storage } from '../utils/storage';
 
 export function useParentalControl() {
   const [backendAvailable, setBackendAvailable] = useState<boolean | null>(null);
@@ -32,128 +33,57 @@ export function useParentalControl() {
   const [sosActive, setSosActive] = useState(false);
   const [activeAlerts, setActiveAlerts] = useState<any[]>([]);
 
-  // Offline/Local fallbacks (Ref-based store for persistence across renders)
-  const localChildrenRef = useRef<any[]>([
-    {
-      id: '1',
-      name: 'Alex',
-      age: 12,
-      avatarColor: '#A855F7',
-      battery: '84%',
-      batteryLevel: 84,
-      device: 'Samsung S23 Ultra',
-      deviceName: 'Samsung S23 Ultra',
-      lastActive: 'Active Now',
-      is_active_online: true,
-      linking_code: null,
-      appUsage: [
-        { name: 'Roblox', time: '1h 15m', color: '#EC4899' },
-        { name: 'YouTube', time: '45m', color: '#A855F7' },
-        { name: 'Chrome', time: '15m', color: '#06B6D4' }
-      ]
-    },
-    {
-      id: '2',
-      name: 'Emma',
-      age: 8,
-      avatarColor: '#EC4899',
-      battery: '92%',
-      batteryLevel: 92,
-      device: 'iPad Mini 6',
-      deviceName: 'iPad Mini 6',
-      lastActive: 'Active 5m ago',
-      is_active_online: true,
-      linking_code: null,
-      appUsage: [
-        { name: 'YouTube Kids', time: '45m', color: '#F97316' },
-        { name: 'Minecraft', time: '30m', color: '#10B981' }
-      ]
+  // Offline/Local store (starts empty for new parent accounts until child device links)
+  const localChildrenRef = useRef<any[]>([]);
+
+  const localScreentimeRef = useRef<{ [key: string]: ScreentimeDashboard }>({});
+  const localAppsRef = useRef<{ [key: string]: BackendApp[] }>({});
+  const localFiltersRef = useRef<{ [key: string]: FilterRules }>({});
+  const localGeofencesRef = useRef<{ [key: string]: GeofenceZone[] }>({});
+  const localLocationRef = useRef<{ [key: string]: any }>({});
+  const localSosPreferencesRef = useRef<{ [key: string]: any }>({});
+
+  useEffect(() => {
+    async function loadLinkedChildFromStorage() {
+      try {
+        const linkedChild = await Storage.getLinkedChild();
+        if (linkedChild && linkedChild.permissions_granted === true && linkedChild.status === 'LINKED') {
+          const existingIdx = localChildrenRef.current.findIndex(
+            c => c.id === linkedChild.id || c.name.toLowerCase() === linkedChild.name.toLowerCase()
+          );
+          if (existingIdx >= 0) {
+            localChildrenRef.current[existingIdx] = { ...localChildrenRef.current[existingIdx], ...linkedChild };
+          } else {
+            localChildrenRef.current = [linkedChild, ...localChildrenRef.current];
+          }
+
+          localScreentimeRef.current[linkedChild.id] = {
+            child_id: linkedChild.id,
+            daily_limit_minutes: linkedChild.totalLimitMinutes || 240,
+            current_usage_minutes: linkedChild.currentUsageMinutes || 135,
+            is_locked_remotely: false,
+          };
+
+          localAppsRef.current[linkedChild.id] = [
+            { app_id: '301', app_name: 'YouTube', category: 'Entertainment', is_blocked: false },
+            { app_id: '302', app_name: 'Chrome', category: 'Browsers', is_blocked: false },
+            { app_id: '303', app_name: 'WhatsApp', category: 'Communication', is_blocked: false },
+            { app_id: '304', app_name: 'Instagram', category: 'Social', is_blocked: false },
+          ];
+
+          setChildren([...localChildrenRef.current]);
+          setSelectedProfileId(linkedChild.id);
+        } else {
+          setChildren([]);
+          setSelectedProfileId('');
+        }
+      } catch (err) {
+        setChildren([]);
+        setSelectedProfileId('');
+      }
     }
-  ]);
-
-  const localScreentimeRef = useRef<{ [key: string]: ScreentimeDashboard }>({
-    '1': { child_id: '1', daily_limit_minutes: 240, current_usage_minutes: 135, is_locked_remotely: false },
-    '2': { child_id: '2', daily_limit_minutes: 120, current_usage_minutes: 75, is_locked_remotely: false },
-  });
-
-  const localAppsRef = useRef<{ [key: string]: BackendApp[] }>({
-    '1': [
-      { app_id: '101', app_name: 'Roblox', category: 'Games', is_blocked: false },
-      { app_id: '102', app_name: 'YouTube', category: 'Entertainment', is_blocked: false },
-      { app_id: '103', app_name: 'Chrome', category: 'Browsers', is_blocked: false },
-      { app_id: '104', app_name: 'Discord', category: 'Social', is_blocked: true },
-      { app_id: '105', app_name: 'TikTok', category: 'Social', is_blocked: true },
-    ],
-    '2': [
-      { app_id: '201', app_name: 'YouTube Kids', category: 'Entertainment', is_blocked: false },
-      { app_id: '202', app_name: 'Minecraft', category: 'Games', is_blocked: false },
-      { app_id: '203', app_name: 'Roblox', category: 'Games', is_blocked: true },
-      { app_id: '204', app_name: 'YouTube', category: 'Entertainment', is_blocked: true },
-      { app_id: '205', app_name: 'Safari', category: 'Browsers', is_blocked: false },
-    ]
-  });
-
-  const localFiltersRef = useRef<{ [key: string]: FilterRules }>({
-    '1': {
-      status: 'success',
-      child_id: '1',
-      blocked_categories: {
-        'All Apps and Categories': false,
-        'Action': false,
-        'Business': false,
-        'Communication': false,
-        'Entertainment': false,
-        'Finance': false,
-        'Health & Fitness': false,
-        'Music & Audio': false,
-        'Photography': false,
-        'Productivity': false,
-        'Shopping': false,
-        'Social': false,
-        'Strategy': false
-      },
-      blacklisted_urls: ['tiktok.com', 'instagram.com', 'snapchat.com', 'reddit.com']
-    },
-    '2': {
-      status: 'success',
-      child_id: '2',
-      blocked_categories: {
-        'All Apps and Categories': false,
-        'Action': false,
-        'Business': false,
-        'Communication': false,
-        'Entertainment': false,
-        'Finance': false,
-        'Health & Fitness': false,
-        'Music & Audio': false,
-        'Photography': false,
-        'Productivity': false,
-        'Shopping': false,
-        'Social': false,
-        'Strategy': false
-      },
-      blacklisted_urls: ['tiktok.com', 'instagram.com', 'youtube.com']
-    }
-  });
-
-  const localGeofencesRef = useRef<{ [key: string]: GeofenceZone[] }>({
-    '1': [
-      { id: 'g1', child_id: '1', name: 'Greenwood School Campus Zone', latitude: 13.0827, longitude: 80.2707, radius_meters: 200.0, status: 'ACTIVE' }
-    ],
-    '2': [
-      { id: 'g2', child_id: '2', name: 'Home Sweet Home', latitude: 13.0827, longitude: 80.2707, radius_meters: 150.0, status: 'ACTIVE' }
-    ]
-  });
-
-  const localLocationRef = useRef<{ [key: string]: any }>({
-    '1': { latitude: 13.0827, longitude: 80.2707, current_address: 'Near Greenwood School Campus Zone', battery_percentage: 84 },
-    '2': { latitude: 13.0827, longitude: 80.2707, current_address: 'Near Home Sweet Home', battery_percentage: 92 }
-  });
-
-  const localSosPreferencesRef = useRef<{ [key: string]: any }>({
-    '1': { email_enabled: true, parent_email: 'parent1@gmail.com', phone_enabled: true, parent_phone: '+15550199' },
-    '2': { email_enabled: true, parent_email: 'parent2@gmail.com', phone_enabled: false, parent_phone: '+15550299' },
-  });
+    loadLinkedChildFromStorage();
+  }, []);
 
   /**
    * Check backend server availability
@@ -168,17 +98,31 @@ export function useParentalControl() {
    * Synchronize local memory data to UI state
    */
   const syncLocalToState = useCallback((profileId: string) => {
-    const targetId = profileId || localChildrenRef.current[0].id;
-    setChildren(prev => (prev && prev.length > 0 ? prev : [...localChildrenRef.current]));
-
-    const sc = localScreentimeRef.current[targetId];
-    if (sc) {
-      setLimitMinutes(sc.daily_limit_minutes);
-      setCurrentUsageMinutes(sc.current_usage_minutes);
-      setDeviceLocked(sc.is_locked_remotely);
+    if (localChildrenRef.current.length === 0) {
+      setChildren([]);
+      setSelectedProfileId('');
+      return;
     }
+    const targetId = profileId || localChildrenRef.current[0].id;
+    setChildren([...localChildrenRef.current]);
+    setSelectedProfileId(targetId);
 
-    const appsList = localAppsRef.current[targetId] || [];
+    const sc = localScreentimeRef.current[targetId] || {
+      child_id: targetId,
+      daily_limit_minutes: 240,
+      current_usage_minutes: 135,
+      is_locked_remotely: false,
+    };
+    setLimitMinutes(sc.daily_limit_minutes);
+    setCurrentUsageMinutes(sc.current_usage_minutes);
+    setDeviceLocked(sc.is_locked_remotely);
+
+    const appsList = localAppsRef.current[targetId] || [
+      { app_id: '301', app_name: 'YouTube', category: 'Entertainment', is_blocked: false },
+      { app_id: '302', app_name: 'Chrome', category: 'Browsers', is_blocked: false },
+      { app_id: '303', app_name: 'WhatsApp', category: 'Communication', is_blocked: false },
+      { app_id: '304', app_name: 'Instagram', category: 'Social', is_blocked: false },
+    ];
     setApps([...appsList]);
 
     const filters = localFiltersRef.current[targetId];
@@ -192,25 +136,6 @@ export function useParentalControl() {
 
     const loc = localLocationRef.current[targetId];
     setLocation(loc ? { ...loc } : null);
-
-    // Mock reports sync
-    setReportSummary({
-      status: 'success',
-      child_id: targetId,
-      generated_timestamp: new Date().toISOString(),
-      device_status: {
-        battery_percentage: loc ? loc.battery_percentage : 90,
-        last_known_address: loc ? loc.current_address : 'Unknown',
-        coordinates: loc ? [loc.latitude, loc.longitude] : [0, 0]
-      },
-      activity_metrics: {
-        total_geofences_monitored: fences.length,
-        active_screentime_hours_used: sc ? Number((sc.current_usage_minutes / 60).toFixed(1)) : 1.5,
-        screentime_remaining_hours: sc ? Number(((sc.daily_limit_minutes - sc.current_usage_minutes) / 60).toFixed(1)) : 2.5,
-        security_threats_blocked: 0
-      },
-      compliance_summary: 'Device operating within normal parameters.'
-    });
 
     setSosActive(false);
     setActiveAlerts([]);
@@ -238,8 +163,21 @@ export function useParentalControl() {
       setCurrentUsageMinutes(screentime.current_usage_minutes);
       setDeviceLocked(screentime.is_locked_remotely);
       setApps(appsList);
-      setBlockedCategories(filters.blocked_categories);
-      setBlockedUrls(filters.blacklisted_urls);
+      if (filters) {
+        if (Array.isArray(filters.blocked_categories)) {
+          const catMap: { [key: string]: boolean } = {};
+          filters.blocked_categories.forEach((cat: string) => {
+            catMap[cat] = true;
+          });
+          setBlockedCategories(catMap);
+        } else {
+          setBlockedCategories(filters.blocked_categories || {});
+        }
+        setBlockedUrls(filters.blacklisted_urls || filters.custom_blacklisted_urls || []);
+      } else {
+        setBlockedCategories({});
+        setBlockedUrls([]);
+      }
       setLocation({
         latitude: locationData.latitude,
         longitude: locationData.longitude,
@@ -259,70 +197,93 @@ export function useParentalControl() {
   }, [syncLocalToState]);
 
   /**
-   * Refresh children list and auto-seed if empty
+   * Refresh children list (checks backend & local storage)
    */
   const refreshChildrenList = useCallback(async () => {
     setIsLoading(true);
     const isOnline = await checkBackend();
+    const storedLinkedChild = await Storage.getLinkedChild();
+
+    const isChildValid = storedLinkedChild && storedLinkedChild.permissions_granted === true && storedLinkedChild.status === 'LINKED';
+
+    if (isChildValid) {
+      const existingIdx = localChildrenRef.current.findIndex(
+        c => c.id === storedLinkedChild.id || c.name.toLowerCase() === storedLinkedChild.name.toLowerCase()
+      );
+      if (existingIdx >= 0) {
+        localChildrenRef.current[existingIdx] = { ...localChildrenRef.current[existingIdx], ...storedLinkedChild };
+      } else {
+        localChildrenRef.current = [storedLinkedChild, ...localChildrenRef.current];
+      }
+    }
 
     if (isOnline) {
       try {
         let childList = await ParentalRepository.listChildren();
 
-        // Database seeding if empty
-        if (childList.length === 0) {
-          console.log('Seeding Alex and Emma profiles to Neon Cloud...');
-          const alex = await ParentalRepository.createChild('Alex', 12);
-          const emma = await ParentalRepository.createChild('Emma', 8);
-          childList = [alex, emma];
-        }
-
         const mappedChildren = childList.map((c: any, index: number) => ({
-          id: c.child_id,
+          id: c.id,
           name: c.name,
           age: c.age,
           avatarColor: index === 0 ? '#A855F7' : '#EC4899',
-          battery: c.battery || '0%',
-          batteryLevel: parseInt(c.battery || '0', 10) || 0,
-          device: c.device || 'Unlinked Device Slot',
-          deviceName: c.device || 'Unlinked Device Slot',
+          battery: c.battery || '100%',
+          batteryLevel: parseInt(c.battery || '100', 10) || 100,
+          device: c.device || 'Linked Device',
+          deviceName: c.device || 'Linked Device',
           lastActive: c.is_active_online ? 'Active Now' : 'Offline',
           is_active_online: c.is_active_online,
           linking_code: c.linking_code,
-          appUsage: index === 0 ? [
-            { name: 'Roblox', time: '1h 15m', color: '#EC4899' },
+          permissions_granted: true,
+          appUsage: [
             { name: 'YouTube', time: '45m', color: '#A855F7' },
             { name: 'Chrome', time: '15m', color: '#06B6D4' }
-          ] : [
-            { name: 'YouTube Kids', time: '45m', color: '#F97316' },
-            { name: 'Minecraft', time: '30m', color: '#10B981' }
           ]
         }));
 
+        if (isChildValid && !mappedChildren.some((c: any) => c.id === storedLinkedChild.id || c.name.toLowerCase() === storedLinkedChild.name.toLowerCase())) {
+          mappedChildren.unshift(storedLinkedChild);
+        }
+
         setChildren(mappedChildren);
 
-        // Select first child profile
-        const activeId = selectedProfileId || mappedChildren[0].id;
+        let activeId = selectedProfileId;
+        if (!activeId || !mappedChildren.some((c: any) => c.id === activeId)) {
+          activeId = mappedChildren.length > 0 ? mappedChildren[0].id : '';
+        }
         setSelectedProfileId(activeId);
-        await refreshChildData(activeId);
+        if (activeId) {
+          await refreshChildData(activeId);
+        }
         setIsLoading(false);
         return;
       } catch (err) {
-        console.error('Error fetching/seeding children:', err);
+        console.error('Error fetching children:', err);
       }
     }
 
     // Offline / local fallback mode
-    setChildren([...localChildrenRef.current]);
-    const activeId = selectedProfileId || localChildrenRef.current[0].id;
+    const fallbackList = [...localChildrenRef.current];
+    setChildren(fallbackList);
+    let activeId = selectedProfileId;
+    if (!activeId || !fallbackList.some(c => c.id === activeId)) {
+      activeId = fallbackList.length > 0 ? fallbackList[0].id : '';
+    }
     setSelectedProfileId(activeId);
-    syncLocalToState(activeId);
+    if (activeId) {
+      syncLocalToState(activeId);
+    }
     setIsLoading(false);
   }, [selectedProfileId, checkBackend, refreshChildData, syncLocalToState]);
 
-  // Initial load
+  // Initial load & reactive Storage listener
   useEffect(() => {
     refreshChildrenList();
+    const unsubscribe = Storage.subscribe('*', () => {
+      refreshChildrenList();
+    });
+    return () => {
+      unsubscribe();
+    };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle selected child profile changes
@@ -340,41 +301,57 @@ export function useParentalControl() {
    */
   const changeDeviceLock = useCallback(async (isLocked: boolean) => {
     setDeviceLocked(isLocked);
+    const target = localScreentimeRef.current[selectedProfileId] || {
+      child_id: selectedProfileId,
+      daily_limit_minutes: limitMinutes,
+      current_usage_minutes: currentUsageMinutes,
+      is_locked_remotely: isLocked,
+    };
+    target.is_locked_remotely = isLocked;
+    localScreentimeRef.current[selectedProfileId] = target;
+    await Storage.setScreentime(selectedProfileId, target);
+
     if (backendAvailable) {
       try {
         await ParentalRepository.remoteLock(selectedProfileId, isLocked);
       } catch (e) {
         console.error(e);
       }
-    } else {
-      // Local updates
-      const target = localScreentimeRef.current[selectedProfileId];
-      if (target) target.is_locked_remotely = isLocked;
     }
-  }, [backendAvailable, selectedProfileId]);
+  }, [backendAvailable, selectedProfileId, limitMinutes, currentUsageMinutes]);
 
   const changeChildDailyLimit = useCallback(async (minutes: number) => {
     setLimitMinutes(minutes);
+    const target = localScreentimeRef.current[selectedProfileId] || {
+      child_id: selectedProfileId,
+      daily_limit_minutes: minutes,
+      current_usage_minutes: currentUsageMinutes,
+      is_locked_remotely: deviceLocked,
+    };
+    target.daily_limit_minutes = minutes;
+    localScreentimeRef.current[selectedProfileId] = target;
+    await Storage.setScreentime(selectedProfileId, target);
+
     if (backendAvailable) {
       try {
-        const res = await fetch(`http://localhost:8002/api/screentime/${selectedProfileId}/daily-limit`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ daily_limit_minutes: minutes }),
-        });
-        if (!res.ok) console.warn('Failed to save daily limit to server.');
+        await ParentalRepository.updateDailyLimit(selectedProfileId, minutes);
       } catch (e) {
         console.error(e);
       }
-    } else {
-      const target = localScreentimeRef.current[selectedProfileId];
-      if (target) target.daily_limit_minutes = minutes;
     }
-  }, [backendAvailable, selectedProfileId]);
+  }, [backendAvailable, selectedProfileId, currentUsageMinutes, deviceLocked]);
 
   const toggleBlockApp = useCallback(async (appId: string, appName: string) => {
     // Optimistic UI state flip
-    setApps(prev => prev.map(a => a.app_id === appId ? { ...a, is_blocked: !a.is_blocked } : a));
+    setApps(prev => {
+      const updated = prev.map(a => a.app_id === appId ? { ...a, is_blocked: !a.is_blocked } : a);
+      Storage.setApps(selectedProfileId, updated);
+      return updated;
+    });
+
+    const list = localAppsRef.current[selectedProfileId] || [];
+    const app = list.find(a => a.app_id === appId);
+    if (app) app.is_blocked = !app.is_blocked;
 
     if (backendAvailable) {
       try {
@@ -382,10 +359,6 @@ export function useParentalControl() {
       } catch (e) {
         console.error(e);
       }
-    } else {
-      const list = localAppsRef.current[selectedProfileId] || [];
-      const app = list.find(a => a.app_id === appId);
-      if (app) app.is_blocked = !app.is_blocked;
     }
   }, [backendAvailable, selectedProfileId]);
 
@@ -420,39 +393,88 @@ export function useParentalControl() {
     }
   }, [backendAvailable, selectedProfileId]);
 
-  const removeBlacklistUrl = useCallback((url: string) => {
+  const removeBlacklistUrl = useCallback(async (url: string) => {
     setBlockedUrls(prev => prev.filter(u => u !== url));
-    // Since backend does not support removing domains directly, we fallback to local representation or just UI state update
-    if (!backendAvailable) {
+    if (backendAvailable) {
+      try {
+        await ParentalRepository.removeBlacklistUrl(selectedProfileId, url);
+      } catch (e) {
+        console.error(e);
+      }
+    } else {
       const target = localFiltersRef.current[selectedProfileId];
       if (target) target.blacklisted_urls = target.blacklisted_urls.filter(u => u !== url);
     }
   }, [backendAvailable, selectedProfileId]);
 
+
   const generateLinkingCode = useCallback(async () => {
     if (backendAvailable) {
       try {
         const res = await ParentalRepository.generateLinkingCode(selectedProfileId);
+        if (res?.linking_code) {
+          await Storage.setPendingCode(res.linking_code);
+        }
         // Reload children to display the generated linking code
         await refreshChildrenList();
         return res.linking_code;
       } catch (e) {
         console.error(e);
       }
-    } else {
-      // Mock code generation
-      const partLeft = Math.floor(100 + Math.random() * 900);
-      const partRight = Math.floor(100 + Math.random() * 900);
-      const mockCode = `${partLeft}-${partRight}`;
-
-      const activeChild = localChildrenRef.current.find(c => c.id === selectedProfileId);
-      if (activeChild) {
-        activeChild.linking_code = mockCode;
-      }
-      setChildren([...localChildrenRef.current]);
-      return mockCode;
     }
+
+    // Local code generation & persistence to Storage DB
+    const partLeft = Math.floor(100 + Math.random() * 900);
+    const partRight = Math.floor(100 + Math.random() * 900);
+    const mockCode = `${partLeft}-${partRight}`;
+
+    await Storage.setPendingCode(mockCode);
+    const activeChild = localChildrenRef.current.find(c => c.id === selectedProfileId);
+    if (activeChild) {
+      activeChild.linking_code = mockCode;
+    }
+    setChildren([...localChildrenRef.current]);
+    await Storage.setChildrenList(localChildrenRef.current);
+    return mockCode;
   }, [backendAvailable, selectedProfileId, refreshChildrenList]);
+
+  const createChildProfile = useCallback(async (name: string, age: number, linkingCode: string) => {
+    await Storage.setPendingCode(linkingCode);
+
+    if (backendAvailable) {
+      try {
+        const newChild = await ParentalRepository.createChild(name, age, linkingCode);
+        await refreshChildrenList();
+        return newChild;
+      } catch (e) {
+        console.error('Error creating child profile:', e);
+        throw e;
+      }
+    } else {
+      const mockChild = {
+        id: (localChildrenRef.current.length + 1).toString(),
+        name,
+        age,
+        avatarColor: localChildrenRef.current.length % 2 === 0 ? '#EC4899' : '#A855F7',
+        battery: '100%',
+        batteryLevel: 100,
+        device: 'Samsung S23 Ultra',
+        deviceName: 'Samsung S23 Ultra',
+        lastActive: 'Active Now',
+        is_active_online: true,
+        linking_code: linkingCode,
+        appUsage: [
+          { name: 'Roblox', time: '1h 15m', color: '#EC4899' },
+          { name: 'YouTube', time: '45m', color: '#A855F7' }
+        ]
+      };
+      localChildrenRef.current.push(mockChild);
+      setChildren([...localChildrenRef.current]);
+      setSelectedProfileId(mockChild.id);
+      await Storage.setChildrenList(localChildrenRef.current);
+      return mockChild;
+    }
+  }, [backendAvailable, refreshChildrenList]);
 
   const addNewGeofence = useCallback(async (name: string, lat: number, lng: number, radius: number) => {
     const newFence: GeofenceZone = {
@@ -518,12 +540,41 @@ export function useParentalControl() {
     return localSosPreferencesRef.current[selectedProfileId] || { email_enabled: false, parent_email: '', phone_enabled: false, parent_phone: '' };
   }, [backendAvailable, selectedProfileId]);
 
+  const unlinkChildDevice = useCallback(async (childId: string) => {
+    try {
+      await Storage.setLinkedChild(null);
+      await Storage.setChildId('');
+    } catch {}
+
+    if (localChildrenRef.current.length > 0) {
+      localChildrenRef.current = localChildrenRef.current.filter(c => c.id !== childId);
+    } else {
+      localChildrenRef.current = [];
+    }
+
+    setChildren([...localChildrenRef.current]);
+    if (localChildrenRef.current.length > 0) {
+      setSelectedProfileId(localChildrenRef.current[0].id);
+    } else {
+      setSelectedProfileId('');
+    }
+
+    if (backendAvailable) {
+      try {
+        await ParentalRepository.unlinkChildDevice(childId);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  }, [backendAvailable]);
+
   return {
     isLoading,
     backendAvailable,
     children,
     selectedProfileId,
     selectProfile,
+    unlinkChildDevice,
     deviceLocked,
     changeDeviceLock,
     limitMinutes,
@@ -547,6 +598,7 @@ export function useParentalControl() {
     updateSosPreferences,
     getSosPreferences,
     generateLinkingCode,
+    createChildProfile,
     refreshData: () => refreshChildrenList(),
   };
 }

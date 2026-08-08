@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { getApiBaseUrl, getGeoBaseUrl } from '../config/apiConfig';
 
 export interface DashboardMetrics {
   total_scanned: number;
@@ -7,8 +8,8 @@ export interface DashboardMetrics {
   device_security_score: number;
 }
 
-// Set this to your local server IP or domain when deploying on a physical device.
-const BASE_URL = 'http://192.168.39.211:8001';
+const getBaseUrl = () => getApiBaseUrl();
+const getGeoUrl = () => getGeoBaseUrl();
 
 export const ScannerRepository = {
   /**
@@ -26,12 +27,12 @@ export const ScannerRepository = {
       type: 'application/vnd.android.package-archive',
     } as any);
 
-    const response = await fetch(`${BASE_URL}/api/scan`, {
+    // NOTE: Do NOT pass manual 'Content-Type': 'multipart/form-data' header.
+    // In JS/React Native fetch, passing FormData without explicit Content-Type allows fetch
+    // to automatically inject the correct boundary header so PostgreSQL backend can parse form fields.
+    const response = await fetch(`${getBaseUrl()}/api/scan`, {
       method: 'POST',
       body: formData,
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
     });
 
     if (!response.ok) {
@@ -42,25 +43,25 @@ export const ScannerRepository = {
   },
 
   async getScanDetails(scanId: number): Promise<any> {
-    const response = await fetch(`${BASE_URL}/api/scans/${scanId}`);
+    const response = await fetch(`${getBaseUrl()}/api/scans/${scanId}`);
     if (!response.ok) throw new Error('Failed to retrieve scan details.');
     return response.json();
   },
 
   async listScans(): Promise<any[]> {
-    const response = await fetch(`${BASE_URL}/api/scans`);
+    const response = await fetch(`${getBaseUrl()}/api/scans`);
     if (!response.ok) throw new Error('Failed to retrieve scans list.');
     return response.json();
   },
 
   async listQuarantinedApks(): Promise<any[]> {
-    const response = await fetch(`${BASE_URL}/api/quarantine`);
+    const response = await fetch(`${getBaseUrl()}/api/quarantine`);
     if (!response.ok) throw new Error('Failed to retrieve quarantined files.');
     return response.json();
   },
 
   async listScanHistory(): Promise<any[]> {
-    const response = await fetch(`${BASE_URL}/api/history`);
+    const response = await fetch(`${getBaseUrl()}/api/history`);
     if (!response.ok) throw new Error('Failed to retrieve scan history.');
     return response.json();
   },
@@ -70,7 +71,7 @@ export const ScannerRepository = {
    */
   async quarantineFile(scanId: number): Promise<boolean> {
     try {
-      const response = await fetch(`${BASE_URL}/api/scans/${scanId}/action`, {
+      const response = await fetch(`${getBaseUrl()}/api/scans/${scanId}/action`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -89,7 +90,7 @@ export const ScannerRepository = {
    */
   async restoreFile(quarantineId: number): Promise<boolean> {
     try {
-      const response = await fetch(`${BASE_URL}/api/quarantine/${quarantineId}/restore`, {
+      const response = await fetch(`${getBaseUrl()}/api/quarantine/${quarantineId}/restore`, {
         method: 'POST',
       });
       return response.ok;
@@ -104,7 +105,7 @@ export const ScannerRepository = {
    */
   async deletePermanently(quarantineId: number): Promise<boolean> {
     try {
-      const response = await fetch(`${BASE_URL}/api/quarantine/${quarantineId}/delete`, {
+      const response = await fetch(`${getBaseUrl()}/api/quarantine/${quarantineId}/delete`, {
         method: 'POST',
       });
       return response.ok;
@@ -119,7 +120,7 @@ export const ScannerRepository = {
    */
   async deleteScannedFileDirectly(scanId: number): Promise<boolean> {
     try {
-      const response = await fetch(`${BASE_URL}/api/scans/${scanId}/action`, {
+      const response = await fetch(`${getBaseUrl()}/api/scans/${scanId}/action`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -138,7 +139,7 @@ export const ScannerRepository = {
    */
   async ignoreThreat(scanId: number): Promise<boolean> {
     try {
-      const response = await fetch(`${BASE_URL}/api/scans/${scanId}/action`, {
+      const response = await fetch(`${getBaseUrl()}/api/scans/${scanId}/action`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -157,7 +158,7 @@ export const ScannerRepository = {
    */
   async submitForAnalysis(quarantineId: number): Promise<boolean> {
     try {
-      const response = await fetch(`${BASE_URL}/api/quarantine/${quarantineId}/analyze`, {
+      const response = await fetch(`${getBaseUrl()}/api/quarantine/${quarantineId}/analyze`, {
         method: 'POST',
       });
       return response.ok;
@@ -173,7 +174,7 @@ export const DashboardRepository = {
    * Retrieves dashboard aggregation metrics directly from the server.
    */
   async getDashboardMetrics(): Promise<any> {
-    const response = await fetch(`${BASE_URL}/api/dashboard`);
+    const response = await fetch(`${getBaseUrl()}/api/dashboard`);
     if (!response.ok) throw new Error('Failed to retrieve dashboard metrics.');
     return response.json();
   },
@@ -182,17 +183,15 @@ export const DashboardRepository = {
    * Retrieves active warnings/alerts.
    */
   async getActiveAlerts(): Promise<any[]> {
-    const response = await fetch(`${BASE_URL}/api/alerts`);
+    const response = await fetch(`${getBaseUrl()}/api/alerts`);
     if (!response.ok) throw new Error('Failed to retrieve active alerts.');
     return response.json();
   }
 };
 
-const GEO_BASE_URL = 'http://192.168.39.211:8003/api/v1/geolocation';
-
 export const GeolocationRepository = {
   async getCurrentLocation(): Promise<any> {
-    const response = await fetch(`${GEO_BASE_URL}/current`);
+    const response = await fetch(`${getGeoUrl()}/current`);
     if (!response.ok) throw new Error('Failed to retrieve current location.');
     return response.json();
   },
@@ -207,7 +206,7 @@ export const GeolocationRepository = {
     timestamp?: string;
     device_id?: string;
   }): Promise<any> {
-    const response = await fetch(`${GEO_BASE_URL}/current`, {
+    const response = await fetch(`${getGeoUrl()}/current`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -219,14 +218,14 @@ export const GeolocationRepository = {
   },
 
   async getLocationHistory(): Promise<any[]> {
-    const response = await fetch(`${GEO_BASE_URL}/history`);
+    const response = await fetch(`${getGeoUrl()}/history`);
     if (!response.ok) throw new Error('Failed to retrieve location history.');
     const json = await response.json();
     return json.history || [];
   },
 
   async deleteHistoryEntry(): Promise<any> {
-    const response = await fetch(`${GEO_BASE_URL}/history`, {
+    const response = await fetch(`${getGeoUrl()}/history`, {
       method: 'DELETE',
     });
     if (!response.ok) throw new Error('Failed to clear location history.');
@@ -234,7 +233,7 @@ export const GeolocationRepository = {
   },
 
   async getNearbyPlaces(payload: { latitude: number; longitude: number; radius_km: number }): Promise<any[]> {
-    const response = await fetch(`${GEO_BASE_URL}/nearby`, {
+    const response = await fetch(`${getGeoUrl()}/nearby`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

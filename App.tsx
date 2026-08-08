@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
-import { StatusBar, StyleSheet, View } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StatusBar, StyleSheet, View, LogBox } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { ThemeProvider } from './src/contexts/ThemeContext';
 import { colors } from './src/styles/theme';
+import { Storage } from './src/utils/storage';
+import { ChildDaemon } from './src/services/childDaemon';
+import { ParentalRepository } from './src/data/parentalRepository';
 
 // Import Screens
 import { LoginScreen } from './src/screens/LoginScreen';
@@ -16,6 +19,9 @@ import { ChildLinkScreen } from './src/screens/ChildLinkScreen';
 import { ChildModeScreen } from './src/screens/ChildModeScreen';
 import { VulnerabilityDetectionScreen } from './src/screens/VulnerabilityDetectionScreen';
 import { ChildDashboardScreen } from './src/screens/ChildDashboardScreen';
+import { DeviceRoleSelectionScreen } from './src/screens/DeviceRoleSelectionScreen';
+import { TwoStepBindingScreen } from './src/screens/TwoStepBindingScreen';
+import { ChildPermissionsScreen } from './src/screens/ChildPermissionsScreen';
 
 type ScreenName =
   | 'Login'
@@ -26,13 +32,14 @@ type ScreenName =
   | 'MalwareAnalysis'
   | 'CallerIntelligence'
   | 'ChildLink'
+  | 'ChildPermissions'
   | 'ChildMode'
   | 'VulnerabilityDetection'
-  | 'ChildDashboard';
+  | 'ChildDashboard'
+  | 'DeviceRoleSelection'
+  | 'TwoStepBinding';
 
 import { useAppTheme } from './src/contexts/ThemeContext';
-
-import { useApkScanner } from './src/hooks/useApkScanner';
 
 function AppContent({ renderScreen }: { renderScreen: () => React.ReactNode }) {
   const { colors, mode } = useAppTheme();
@@ -52,10 +59,48 @@ function AppContent({ renderScreen }: { renderScreen: () => React.ReactNode }) {
 function App() {
   const [currentScreen, setCurrentScreen] = useState<ScreenName>('Login');
   const [signUpSuccessMessage, setSignUpSuccessMessage] = useState('');
-  const scanner = useApkScanner();
+
+  useEffect(() => {
+    LogBox.ignoreAllLogs();
+    async function checkLaunchGuard() {
+      try {
+        console.log('[App] Checking session on mount...');
+        const token = await Storage.getAuthToken();
+        console.log('[App] Session check retrieved token:', token);
+        if (token) {
+          console.log('[Auth] Active session token found. Auto-routing to Dashboard.');
+          const userProfile = await Storage.getUserProfile();
+          if (userProfile && userProfile.user_id) {
+            const backendCheck = await ParentalRepository.checkParentLinked(userProfile.user_id);
+            if (backendCheck?.is_linked && backendCheck?.linked_child) {
+              await Storage.setLinkedChild(backendCheck.linked_child);
+            }
+          }
+          setCurrentScreen('Dashboard');
+        }
+      } catch (error) {
+        console.error('[Auth] Session restoration check failed:', error);
+      }
+    }
+    checkLaunchGuard();
+  }, []);
+
+  const handleSignOut = async () => {
+    await Storage.clear();
+    ChildDaemon.stopDaemon();
+    setCurrentScreen('DeviceRoleSelection');
+  };
 
   const renderScreen = () => {
     switch (currentScreen) {
+      case 'DeviceRoleSelection':
+        return (
+          <DeviceRoleSelectionScreen
+            onSelectParent={() => setCurrentScreen('Login')}
+            onSelectChild={() => setCurrentScreen('ChildLink')}
+            onViewBindingCode={() => setCurrentScreen('TwoStepBinding')}
+          />
+        );
       case 'Login':
         return (
           <LoginScreen
@@ -63,12 +108,19 @@ function App() {
               setSignUpSuccessMessage('');
               setCurrentScreen('Dashboard');
             }}
-            onSetUpChildDevice={() => setCurrentScreen('ChildLink')}
+            onSetUpChildDevice={() => setCurrentScreen('DeviceRoleSelection')}
             onGoToSignUp={() => {
               setSignUpSuccessMessage('');
               setCurrentScreen('SignUp');
             }}
             signUpSuccessMessage={signUpSuccessMessage}
+          />
+        );
+      case 'TwoStepBinding':
+        return (
+          <TwoStepBindingScreen
+            onBack={() => setCurrentScreen('Dashboard')}
+            onCheckStatus={() => setCurrentScreen('Dashboard')}
           />
         );
       case 'SignUp':
@@ -87,22 +139,26 @@ function App() {
       case 'Dashboard':
         return (
           <DashboardScreen
-            onSignOut={() => setCurrentScreen('Login')}
+            onSignOut={handleSignOut}
             onOpenGeoTracking={() => setCurrentScreen('GeoTracking')}
             onOpenParentalControl={() => setCurrentScreen('ParentalControl')}
             onOpenMalwareAnalysis={() => setCurrentScreen('MalwareAnalysis')}
             onOpenCallerIntelligence={() => setCurrentScreen('CallerIntelligence')}
             onOpenVulnerabilityDetection={() => setCurrentScreen('VulnerabilityDetection')}
             onOpenChildDashboard={() => setCurrentScreen('ChildDashboard')}
-            scanner={scanner}
           />
         );
       case 'GeoTracking':
         return <GeoTrackingScreen onBack={() => setCurrentScreen('Dashboard')} />;
       case 'ParentalControl':
-        return <ParentalControlScreen onBack={() => setCurrentScreen('Dashboard')} />;
+        return (
+          <ParentalControlScreen
+            onBack={() => setCurrentScreen('Dashboard')}
+            onSignOut={handleSignOut}
+          />
+        );
       case 'MalwareAnalysis':
-        return <MalwareAnalysisScreen onBack={() => setCurrentScreen('Dashboard')} scanner={scanner} />;
+        return <MalwareAnalysisScreen onBack={() => setCurrentScreen('Dashboard')} />;
       case 'CallerIntelligence':
         return <CallerIntelligenceScreen onBack={() => setCurrentScreen('Dashboard')} />;
       case 'VulnerabilityDetection':
@@ -112,18 +168,25 @@ function App() {
       case 'ChildLink':
         return (
           <ChildLinkScreen
-            onBack={() => setCurrentScreen('Login')}
-            onLinkSuccess={() => setCurrentScreen('ChildMode')}
+            onBack={() => setCurrentScreen('DeviceRoleSelection')}
+            onLinkSuccess={() => setCurrentScreen('ChildPermissions')}
+          />
+        );
+      case 'ChildPermissions':
+        return (
+          <ChildPermissionsScreen
+            onBack={() => setCurrentScreen('ChildLink')}
+            onConfirmPermissions={() => setCurrentScreen('ChildMode')}
           />
         );
       case 'ChildMode':
-        return <ChildModeScreen onUnlink={() => setCurrentScreen('Login')} />;
+        return <ChildModeScreen onUnlink={handleSignOut} />;
       default:
         return (
-          <LoginScreen
-            onSignInSuccess={() => setCurrentScreen('Dashboard')}
-            onSetUpChildDevice={() => setCurrentScreen('ChildLink')}
-            onGoToSignUp={() => setCurrentScreen('SignUp')}
+          <DeviceRoleSelectionScreen
+            onSelectParent={() => setCurrentScreen('Login')}
+            onSelectChild={() => setCurrentScreen('ChildLink')}
+            onViewBindingCode={() => setCurrentScreen('TwoStepBinding')}
           />
         );
     }

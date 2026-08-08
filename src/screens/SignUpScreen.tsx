@@ -20,6 +20,7 @@ import { useAppTheme } from '../contexts/ThemeContext';
 import { colors } from '../styles/theme';
 import { Icon } from '../components/Icon';
 import { registerUser, AuthError } from '../data/authRepository';
+import { Storage } from '../utils/storage';
 
 interface SignUpScreenProps {
   onSignUpSuccess: () => void; // go back to Login after registration
@@ -93,7 +94,18 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
 
     setIsLoading(true);
     try {
-      await registerUser({ name: name.trim(), email, password });
+      const res = await registerUser({ name: name.trim(), email, password });
+      const createdId = res.user_id || Math.floor(Math.random() * 8999) + 1000;
+      await Storage.saveRegisteredAccount({
+        name: name.trim(),
+        email: email.trim(),
+        user_id: createdId,
+      });
+      await Storage.setUserProfile({
+        name: name.trim(),
+        email: email.trim(),
+        user_id: createdId,
+      });
       setSuccessMessage('Account created! Redirecting to Sign In...');
       setTimeout(() => {
         onSignUpSuccess();
@@ -178,7 +190,7 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
         </View>
 
         {/* Error banner */}
-        {errorMessage.length > 0 && (
+        {!!errorMessage && (
           <View style={styles.errorContainer}>
             <Icon name="error" color={colors.redDanger} size={16} />
             <Text style={styles.errorText}>{errorMessage}</Text>
@@ -186,7 +198,7 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
         )}
 
         {/* Success banner */}
-        {successMessage.length > 0 && (
+        {!!successMessage && (
           <View style={styles.successContainer}>
             <Icon name="shield" color="#10b981" size={16} />
             <Text style={styles.successText}>{successMessage}</Text>

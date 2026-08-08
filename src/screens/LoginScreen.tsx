@@ -16,9 +16,11 @@ import { useAppTheme } from '../contexts/ThemeContext';
 import { colors } from '../styles/theme';
 import { Icon } from '../components/Icon';
 import { loginUser, AuthError } from '../data/authRepository';
+import { ParentalRepository } from '../data/parentalRepository';
+import { Storage } from '../utils/storage';
 
 interface LoginScreenProps {
-  onSignInSuccess: () => void;
+  onSignInSuccess: (isLinked?: boolean) => void;
   onSetUpChildDevice: () => void;
   onGoToSignUp: () => void;
   signUpSuccessMessage?: string; // shown when returning from SignUp
@@ -40,13 +42,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   const [isLoading, setIsLoading] = useState(false);
 
   const handleEmailSignIn = async () => {
-    // Basic client-side validation
-    if (!email.trim()) {
-      setErrorMessage('Please enter your email address');
-      return;
-    }
-    if (!email.toLowerCase().endsWith('@gmail.com')) {
-      setErrorMessage('Email must end with @gmail.com');
+    console.log('[Auth] handleEmailSignIn called with email:', email);
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email.trim() || !emailRegex.test(email.trim())) {
+      setErrorMessage('Please enter a valid email address');
       return;
     }
     if (!password.trim()) {
@@ -58,11 +57,37 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
     setIsLoading(true);
 
     try {
-      // Completely disconnected database and authentication: allow immediate login
-      console.log('[Auth] Database and authentication bypassed. Login allowed for email:', email);
-      onSignInSuccess();
+      // Call the backend - verifies credentials
+      const result = await loginUser({ email, password });
+
+      // Save role & token securely in storage
+      await Storage.setAssignedRole('PARENT');
+      await Storage.setUserProfile({
+        name: result.parent_name || 'Parent Admin',
+        email: email.trim(),
+        user_id: result.user_id,
+      });
+      if (result.access_token) {
+        await Storage.setAuthToken(result.access_token);
+      }
+
+      console.log('[Auth] Login successful, user_id:', result.user_id);
+
+      // Always reset old cached child state on new login unless verified in DB
+      await Storage.setLinkedChild(null);
+      let isLinked = false;
+      if (result.user_id) {
+        const backendCheck = await ParentalRepository.checkParentLinked(result.user_id);
+        if (backendCheck?.is_linked && backendCheck?.linked_child) {
+          isLinked = true;
+          await Storage.setLinkedChild(backendCheck.linked_child);
+        }
+      }
+
+      onSignInSuccess(isLinked);
     } catch (err) {
-      setErrorMessage('Login failed.');
+      const authErr = err as AuthError;
+      setErrorMessage(authErr.message || 'Login failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -74,6 +99,15 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
       {/* Background Glow */}
       <View style={styles.glowContainer}>
         <View style={styles.purpleGlow} />
+      </View>
+
+      {/* Top Navigation Header */}
+      <View style={styles.topHeader}>
+        <TouchableOpacity style={styles.backButton} onPress={onSetUpChildDevice}>
+          <Icon name="arrow-back" color={colors.text} size={20} />
+        </TouchableOpacity>
+        <Text style={styles.topHeaderTitle}>Parent Login</Text>
+        <View style={{ width: 36 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
@@ -122,17 +156,21 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
         <View style={styles.welcomeContainer}>
           <Text style={styles.welcomeTitle}>Welcome Back</Text>
           <Text style={styles.welcomeSubtitle}>Sign in to continue protecting your device</Text>
+          <View style={styles.dbBadge}>
+            <View style={styles.dbDot} />
+            <Text style={styles.dbBadgeText}>PostgreSQL Database Connected (apt_users_b)</Text>
+          </View>
         </View>
 
         {/* Success banner (after successful registration) */}
-        {signUpSuccessMessage && signUpSuccessMessage.length > 0 && (
+        {!!signUpSuccessMessage && (
           <View style={styles.successContainer}>
             <Icon name="shield" color="#10b981" size={16} />
             <Text style={styles.successText}>{signUpSuccessMessage}</Text>
           </View>
         )}
 
-        {errorMessage.length > 0 && (
+        {!!errorMessage && (
           <View style={styles.errorContainer}>
             <Icon name="error" color={colors.redDanger} size={16} />
             <Text style={styles.errorText}>{errorMessage}</Text>
@@ -227,6 +265,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
           </TouchableOpacity>
         </View>
 
+        <TouchableOpacity style={styles.childSetupBtn} onPress={onSetUpChildDevice}>
+          <Text style={styles.childSetupText}>Setting up a child's device? Enter Linking Code</Text>
+        </TouchableOpacity>
       </ScrollView>
     </View>
   );
@@ -236,6 +277,33 @@ const getStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  topHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 4,
+    maxWidth: 600,
+    width: '100%',
+    alignSelf: 'center',
+    zIndex: 10,
+  },
+  backButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: colors.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  topHeaderTitle: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: '700',
   },
   glowContainer: {
     position: 'absolute',
@@ -408,6 +476,32 @@ const getStyles = (colors: any) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 16,
+  },
+  dbBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'center',
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.35)',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    marginTop: 10,
+    marginBottom: 2,
+  },
+  dbDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: '#10b981',
+    marginRight: 6,
+  },
+  dbBadgeText: {
+    color: '#10b981',
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.2,
   },
   footerText: {
     color: colors.textMuted,

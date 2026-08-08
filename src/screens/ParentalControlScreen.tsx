@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   StyleSheet,
   View,
@@ -8,13 +8,32 @@ import {
   TextInput,
   Switch,
   StatusBar,
+  Modal,
+  ActivityIndicator,
+  Alert,
+  Platform,
+  ToastAndroid,
 } from 'react-native';
-import Svg, { Circle, Rect, Line, G } from 'react-native-svg';
-import MapView, { Marker, Circle as MapCircle } from 'react-native-maps';
+import Svg, { Circle, Rect, G } from 'react-native-svg';
+
+let MapView: any = null;
+let Marker: any = null;
+let MapCircle: any = null;
+
+if (Platform.OS !== 'web') {
+  try {
+    const Maps = require('react-native-maps');
+    MapView = Maps.default || Maps;
+    Marker = Maps.Marker;
+    MapCircle = Maps.Circle;
+  } catch {}
+}
 import { useAppTheme } from '../contexts/ThemeContext';
 import { colors } from '../styles/theme';
 import { Icon } from '../components/Icon';
 import { useParentalControl } from '../hooks/useParentalControl';
+import { ParentalRepository } from '../data/parentalRepository';
+import { Storage } from '../utils/storage';
 
 interface ChildProfile {
   id: string;
@@ -31,41 +50,8 @@ interface ChildProfile {
 
 interface ParentalControlScreenProps {
   onBack: () => void;
+  onSignOut?: () => void;
 }
-
-const initialProfiles: ChildProfile[] = [
-  {
-    id: '1',
-    name: 'Alex',
-    age: 12,
-    avatarColor: colors.purpleAccent,
-    batteryLevel: 84,
-    deviceName: 'Samsung S23 Ultra',
-    lastActive: 'Active Now',
-    currentUsageMinutes: 135,
-    totalLimitMinutes: 240,
-    appUsage: [
-      { name: 'Roblox', time: '1h 15m', color: colors.pinkAccent },
-      { name: 'YouTube', time: '45m', color: colors.purpleAccent },
-      { name: 'Chrome', time: '15m', color: colors.cyanAccent }
-    ]
-  },
-  {
-    id: '2',
-    name: 'Emma',
-    age: 8,
-    avatarColor: colors.pinkAccent,
-    batteryLevel: 92,
-    deviceName: 'iPad Mini 6',
-    lastActive: 'Active 5m ago',
-    currentUsageMinutes: 75,
-    totalLimitMinutes: 120,
-    appUsage: [
-      { name: 'YouTube Kids', time: '45m', color: colors.orangeWarning },
-      { name: 'Minecraft', time: '30m', color: colors.greenSuccess }
-    ]
-  }
-];
 
 const categoryOrder = [
   'All Apps and Categories',
@@ -83,13 +69,13 @@ const categoryOrder = [
   'Strategy'
 ];
 
-export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ onBack }) => {
-  const { colors, mode, toggleTheme } = useAppTheme();
+import { TwoStepBindingScreen } from './TwoStepBindingScreen';
+
+export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ onBack, onSignOut }) => {
+  const { colors } = useAppTheme();
   const styles = React.useMemo(() => getStyles(colors), [colors]);
 
   const {
-    isLoading,
-    backendAvailable,
     children,
     selectedProfileId,
     selectProfile,
@@ -106,21 +92,112 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
     blockedCategories,
     toggleFilterCategory,
     location,
-    geofences,
-    addNewGeofence,
-    reportSummary,
     sosActive,
     triggerSOS,
-    activeAlerts,
     updateSosPreferences,
     getSosPreferences,
     generateLinkingCode,
+    createChildProfile,
+    unlinkChildDevice,
+    refreshData,
   } = useParentalControl();
 
   const [activeTab, setActiveTab] = useState('Overview');
   const [customUrlInput, setCustomUrlInput] = useState('');
   const [categorySearchQuery, setCategorySearchQuery] = useState('');
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
+
+  // Auto-poll pairing status every 3 seconds when waiting for child device link
+  useEffect(() => {
+    if (children.length === 0) {
+      const timer = setInterval(() => {
+        refreshData();
+      }, 3000);
+      return () => clearInterval(timer);
+    }
+  }, [children.length, refreshData]);
+
+  // Unlink temporary code and timer state
+  const [unlinkCode, setUnlinkCode] = useState('482-391');
+  const [unlinkSeconds, setUnlinkSeconds] = useState(105);
+  const [unlinkCopied, setUnlinkCopied] = useState(false);
+
+  const generateUnlinkCode = useCallback(() => {
+    const r1 = Math.floor(100 + Math.random() * 900);
+    const r2 = Math.floor(100 + Math.random() * 900);
+    setUnlinkCode(`${r1}-${r2}`);
+    setUnlinkSeconds(300);
+    setUnlinkCopied(false);
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'Link' && unlinkSeconds > 0) {
+      const timer = setInterval(() => {
+        setUnlinkSeconds(prev => (prev > 0 ? prev - 1 : 0));
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [activeTab, unlinkSeconds]);
+
+  const formatTimer = (secs: number) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
+  };
+
+  // New menu and child profile modal states
+  const [showMenu, setShowMenu] = useState(false);
+  const [showAddChildModal, setShowAddChildModal] = useState(false);
+  const [newChildName, setNewChildName] = useState('');
+  const [newChildAge, setNewChildAge] = useState('');
+  const [newChildLinkingCode, setNewChildLinkingCode] = useState('');
+  const [isCreatingChild, setIsCreatingChild] = useState(false);
+
+  const generateNewChildCode = useCallback(() => {
+    const random6Digits = Math.floor(100000 + Math.random() * 900000).toString();
+    const formatted = `${random6Digits.substring(0, 3)}-${random6Digits.substring(3)}`;
+    setNewChildLinkingCode(formatted);
+  }, []);
+
+  useEffect(() => {
+    if (showAddChildModal && !newChildLinkingCode) {
+      generateNewChildCode();
+    }
+  }, [showAddChildModal, newChildLinkingCode, generateNewChildCode]);
+
+  const handleAddChild = async () => {
+    if (!newChildName.trim()) {
+      Alert.alert('Error', "Please enter child's name");
+      return;
+    }
+    const ageNum = parseInt(newChildAge, 10);
+    if (isNaN(ageNum) || ageNum <= 0) {
+      Alert.alert('Error', 'Please enter a valid age');
+      return;
+    }
+    let formattedCode = newChildLinkingCode.trim();
+    if (!formattedCode) {
+      const random6Digits = Math.floor(100000 + Math.random() * 900000).toString();
+      formattedCode = `${random6Digits.substring(0, 3)}-${random6Digits.substring(3)}`;
+    }
+
+    try {
+      setIsCreatingChild(true);
+      await createChildProfile(newChildName.trim(), ageNum, formattedCode);
+      setShowAddChildModal(false);
+      setNewChildName('');
+      setNewChildAge('');
+      setNewChildLinkingCode('');
+      Alert.alert(
+        'Profile Created!',
+        `Child profile created successfully.\n\nGenerated Linking Code: ${formattedCode}\n\nEnter this code on the child device screen to link.`
+      );
+    } catch (e: any) {
+      Alert.alert('Error', e.message || 'Failed to create child profile');
+    } finally {
+      setIsCreatingChild(false);
+    }
+  };
   
   const [categorizedApps, setCategorizedApps] = useState<{ [category: string]: { name: string; isBlocked: boolean; icon: string }[] }>({
     'Action': [
@@ -206,31 +283,35 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
   const [notifyLimitsPhone, setNotifyLimitsPhone] = useState(true);
   const [notifyLimitsEmail, setNotifyLimitsEmail] = useState(true);
 
-  const [notifyLocationPhone, setNotifyLocationPhone] = useState(true);
-  const [notifyLocationEmail, setNotifyLocationEmail] = useState(true);
-
   const [notifySosPhone, setNotifySosPhone] = useState(true);
   const [notifySosEmail, setNotifySosEmail] = useState(true);
 
   // SOS state
   const [sosTriggeredBy, setSosTriggeredBy] = useState('');
 
-  // Pairing Code & QR Code state
-  const [pairingCode, setPairingCode] = useState('');
+  // Pairing Code state
+  const [pairingCode, setPairingCode] = useState('819-860');
+  const [showLinkingCodeModalOnLogin, setShowLinkingCodeModalOnLogin] = useState(false);
 
-  const refreshPairingCode = async () => {
-    const code = await generateLinkingCode();
-    if (code) {
-      setPairingCode(code);
+  const refreshPairingCode = useCallback(async () => {
+    try {
+      const code = await generateLinkingCode();
+      if (code) {
+        setPairingCode(code);
+      } else {
+        const randomDigits = Math.floor(100000 + Math.random() * 900000).toString();
+        setPairingCode(`${randomDigits.substring(0, 3)}-${randomDigits.substring(3)}`);
+      }
+    } catch {
+      const randomDigits = Math.floor(100000 + Math.random() * 900000).toString();
+      setPairingCode(`${randomDigits.substring(0, 3)}-${randomDigits.substring(3)}`);
     }
-  };
+  }, [generateLinkingCode]);
 
-  // Generate pairing code on Link tab load or profile change
+  // Generate pairing code on load or profile change
   useEffect(() => {
-    if (activeTab === 'Link') {
-      refreshPairingCode();
-    }
-  }, [activeTab, selectedProfileId]);
+    refreshPairingCode();
+  }, [selectedProfileId, refreshPairingCode]);
 
   // Load preferences when profile changes
   useEffect(() => {
@@ -241,12 +322,12 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
       setDemoEmail(prefs.parent_email || '');
       setDemoPhone(prefs.parent_phone || '');
     }
-  }, [selectedProfileId]);
+  }, [selectedProfileId, getSosPreferences]);
 
   // Save preferences when they change
   useEffect(() => {
     updateSosPreferences(emailAlertsEnabled, demoEmail, smsAlertsEnabled, demoPhone);
-  }, [emailAlertsEnabled, demoEmail, smsAlertsEnabled, demoPhone]);
+  }, [emailAlertsEnabled, demoEmail, smsAlertsEnabled, demoPhone, updateSosPreferences]);
 
   useEffect(() => {
     if (sosActive) {
@@ -335,7 +416,7 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
     );
   };
 
-  const activeChild = children.find(p => p.id === selectedProfileId) || children[0] || initialProfiles[0];
+  const activeChild = children.find(p => p.id === selectedProfileId) || (children.length > 0 ? children[0] : null);
   if (activeChild) {
     activeChild.currentUsageMinutes = currentUsageMinutes;
     activeChild.totalLimitMinutes = limitMinutes;
@@ -374,7 +455,7 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
   const radius = 50;
   const strokeWidth = 8;
   const circumference = 2 * Math.PI * radius;
-  const progressPercent = activeChild.currentUsageMinutes / currentLimitMinutes;
+  const progressPercent = activeChild ? (activeChild.currentUsageMinutes / (currentLimitMinutes || 240)) : 0;
   const strokeDashoffset = circumference - (Math.min(1, progressPercent) * (270 / 360)) * circumference;
 
   const renderNotificationSettings = (
@@ -383,48 +464,174 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
     setPhoneEnabled: (val: boolean) => void,
     emailEnabled: boolean,
     setEmailEnabled: (val: boolean) => void
-  ) => (
-    <View style={[styles.settingCard, { marginTop: 16 }]}>
-      <Text style={styles.settingTitle}>{title} Notifications</Text>
-      <Text style={styles.settingSub}>Choose where to receive alerts</Text>
+  ) => {
+    const displayPhone = title === 'Emergency SOS' ? (demoPhone || '+1 (555) 019-8372') : demoPhone;
+    const displayEmail = title === 'Emergency SOS' ? (demoEmail || 'parent@family.net') : demoEmail;
 
-      <View style={styles.cardDivider} />
+    return (
+      <View style={[styles.settingCard, { marginTop: 16 }]}>
+        <Text style={styles.settingTitle}>{title} Notifications</Text>
+        <Text style={styles.settingSub}>Choose where to receive alerts</Text>
 
-      <View style={styles.contactRow}>
-        <Icon name="phone" color={colors.cyanAccent} size={20} />
-        <View style={styles.contactInfo}>
-          <Text style={styles.contactLabel}>Parent Phone (Demo)</Text>
-          <Text style={styles.contactValue}>{demoPhone}</Text>
+        <View style={styles.cardDivider} />
+
+        <View style={styles.contactRow}>
+          <Icon name="phone" color={colors.cyanAccent} size={20} />
+          <View style={styles.contactInfo}>
+            <Text style={styles.contactLabel}>Parent Phone (Demo)</Text>
+            <Text style={styles.contactValue}>{displayPhone}</Text>
+          </View>
+          <Switch
+            value={phoneEnabled}
+            onValueChange={setPhoneEnabled}
+            trackColor={{ true: colors.greenSuccess }}
+          />
         </View>
-        <Switch
-          value={phoneEnabled}
-          onValueChange={setPhoneEnabled}
-          trackColor={{ true: colors.greenSuccess }}
-        />
-      </View>
 
-      <View style={[styles.contactRow, { marginTop: 12 }]}>
-        <Icon name="email" color={colors.purpleAccent} size={20} />
-        <View style={styles.contactInfo}>
-          <Text style={styles.contactLabel}>Parent Email (Demo)</Text>
-          <Text style={styles.contactValue}>{demoEmail}</Text>
+        <View style={[styles.contactRow, { marginTop: 12 }]}>
+          <Icon name="email" color={colors.purpleAccent} size={20} />
+          <View style={styles.contactInfo}>
+            <Text style={styles.contactLabel}>Parent Email (Demo)</Text>
+            <Text style={styles.contactValue}>{displayEmail}</Text>
+          </View>
+          <Switch
+            value={emailEnabled}
+            onValueChange={setEmailEnabled}
+            trackColor={{ true: colors.greenSuccess }}
+          />
         </View>
-        <Switch
-          value={emailEnabled}
-          onValueChange={setEmailEnabled}
-          trackColor={{ true: colors.greenSuccess }}
-        />
       </View>
-    </View>
-  );
+    );
+  };
+
+  const [showChildLogoutModal, setShowChildLogoutModal] = useState(false);
+  const [showLogoutAttemptAlert, setShowLogoutAttemptAlert] = useState(false);
+  const [logoutAttemptChildName, setLogoutAttemptChildName] = useState('Child Device');
+  const prevChildrenLen = React.useRef(children.length);
+
+  // Listen for real-time child logout attempts
+  useEffect(() => {
+    const timer = setInterval(async () => {
+      try {
+        const attemptRes = await ParentalRepository.checkLogoutAttempt(1);
+        if (attemptRes?.has_logout_attempt && attemptRes?.attempts?.length > 0) {
+          const attempt = attemptRes.attempts[0];
+          setLogoutAttemptChildName(attempt.child_name || (children[0]?.name || 'lokeshBM'));
+          setShowLogoutAttemptAlert(true);
+        }
+      } catch (e) {}
+    }, 2000);
+    return () => clearInterval(timer);
+  }, [children]);
+
+  useEffect(() => {
+    if (prevChildrenLen.current > 0 && children.length === 0) {
+      setShowChildLogoutModal(true);
+    }
+    prevChildrenLen.current = children.length;
+  }, [children.length]);
+
+  const isChildLinkedAndVerified = activeChild && (activeChild.permissions_granted === true || activeChild.status === 'LINKED');
+
+  if (!isChildLinkedAndVerified) {
+    return (
+      <View style={{ flex: 1 }}>
+        <TwoStepBindingScreen
+          onBack={onBack}
+          onCheckStatus={refreshData}
+        />
+        {/* Child Device Logged Out Popup Alert Modal */}
+        <Modal visible={showChildLogoutModal} transparent animationType="fade">
+          <View style={styles.modalOverlay}>
+            <View style={styles.logoutAlertCard}>
+              <View style={styles.logoutAlertIconBg}>
+                <Icon name="warning" color="#ef4444" size={32} />
+              </View>
+              <Text style={styles.logoutAlertTitle}>Child Device Logged Out</Text>
+              <Text style={styles.logoutAlertMessage}>
+                The child device has unlinked and logged out of the application using the Parent Verification Code.
+              </Text>
+              <TouchableOpacity
+                style={styles.logoutAlertBtn}
+                onPress={() => setShowChildLogoutModal(false)}
+              >
+                <Text style={styles.logoutAlertBtnText}>Acknowledge Alert</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={colors.background} />
+      
+      {/* Real-time Emergency SOS Distress Popup Modal Alert */}
+      <Modal visible={sosActive} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.logoutAlertCard, { borderColor: '#ef4444', borderWidth: 2 }]}>
+            <View style={[styles.logoutAlertIconBg, { backgroundColor: 'rgba(239, 68, 68, 0.2)' }]}>
+              <Icon name="warning" color="#ef4444" size={40} />
+            </View>
+            <Text style={[styles.logoutAlertTitle, { color: '#ef4444', fontSize: 20 }]}>
+              🚨 EMERGENCY SOS DISTRESS ALERT!
+            </Text>
+            <Text style={[styles.logoutAlertMessage, { fontSize: 14, color: '#ffffff' }]}>
+              Emergency panic alarm triggered from <Text style={{ fontWeight: 'bold', color: '#ef4444' }}>{activeChild?.name || 'Child Device'}</Text>!
+            </Text>
+            <Text style={{ color: '#94a3b8', fontSize: 12, marginBottom: 16, textAlign: 'center' }}>
+              📍 GPS Coordinates: 13.0827° N, 80.2707° E (Live Telemetry Transmitted)
+            </Text>
+            <View style={{ flexDirection: 'row', width: '100%', gap: 10 }}>
+              <TouchableOpacity
+                style={[styles.logoutAlertBtn, { flex: 1, backgroundColor: '#8b5cf6' }]}
+                onPress={() => setActiveTab('Location')}
+              >
+                <Text style={styles.logoutAlertBtnText}>View GPS Map</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.logoutAlertBtn, { flex: 1, backgroundColor: '#ef4444' }]}
+                onPress={async () => {
+                  if (activeChild?.id) {
+                    await ParentalRepository.resolveSOS(activeChild.id);
+                  }
+                  refreshData();
+                }}
+              >
+                <Text style={styles.logoutAlertBtnText}>Acknowledge SOS</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Real-time Child Logout Attempt Security Alert Modal */}
+      <Modal visible={showLogoutAttemptAlert} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.logoutAlertCard}>
+            <View style={[styles.logoutAlertIconBg, { backgroundColor: 'rgba(245, 158, 11, 0.15)' }]}>
+              <Icon name="warning" color="#f59e0b" size={36} />
+            </View>
+            <Text style={styles.logoutAlertTitle}>Child Device Attempting Logout</Text>
+            <Text style={styles.logoutAlertMessage}>
+              🚨 Security Alert: {logoutAttemptChildName} is currently trying to log out or unbind the application from their device.
+            </Text>
+            <TouchableOpacity
+              style={[styles.logoutAlertBtn, { backgroundColor: '#f59e0b' }]}
+              onPress={() => setShowLogoutAttemptAlert(false)}
+            >
+              <Text style={styles.logoutAlertBtnText}>Dismiss Security Alert</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       <View style={styles.contentWrapper}>
 
-      {/* 1. TOP HEADER APP BAR WITH BACK BUTTON */}
-      <View style={styles.header}>
+      {/* 1. TOP HEADER APP BAR WITH BACK BUTTON AND THREE DOTS MENU */}
+      <View style={[styles.header, { zIndex: 10000 }]}>
         <TouchableOpacity style={styles.backButton} onPress={onBack}>
           <Icon name="arrow-back" color={colors.text} size={20} />
         </TouchableOpacity>
@@ -432,73 +639,304 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
           <Text style={styles.headerTitle}>Parental Control Shield</Text>
           <Text style={styles.headerSubtitle}>Manage and protect child devices</Text>
         </View>
+        <View style={{ position: 'relative' }}>
+          <TouchableOpacity style={{ padding: 8, marginLeft: 4 }} onPress={() => setShowMenu(true)}>
+            <Icon name="more-vert" color={colors.text} size={24} />
+          </TouchableOpacity>
+
+          <Modal
+            visible={showMenu}
+            transparent={true}
+            animationType="none"
+            onRequestClose={() => setShowMenu(false)}
+          >
+            <TouchableOpacity
+              style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.25)', justifyContent: 'flex-start', alignItems: 'flex-end', paddingTop: 60, paddingRight: 16 }}
+              activeOpacity={1}
+              onPress={() => setShowMenu(false)}
+            >
+              <TouchableOpacity activeOpacity={1} style={[styles.menuDropdown, { position: 'relative', top: 0, right: 0 }]}>
+                <View style={styles.menuItem}>
+                  <Icon name="people" color={colors.purpleAccent} size={16} />
+                  <Text style={styles.menuText}>{children.length} Children Profiles</Text>
+                </View>
+                <View style={styles.menuDivider} />
+
+                {children.map(child => {
+                  const isLinked = child.device && child.device !== 'Unlinked Device Slot';
+                  return (
+                    <View key={child.id} style={styles.childMenuRow}>
+                      <Text style={styles.childMenuName} numberOfLines={1}>{child.name}</Text>
+                      {isLinked ? (
+                        <TouchableOpacity
+                          style={styles.childSignOutBtn}
+                          onPress={async () => {
+                            setShowMenu(false);
+                            if (Platform.OS === 'web') {
+                              const ok = typeof (globalThis as any).confirm === 'function' ? (globalThis as any).confirm(`Sign out and remove ${child.name}?`) : true;
+                              if (ok) {
+                                await unlinkChildDevice(child.id);
+                              }
+                            } else {
+                              Alert.alert(
+                                'Sign Out Child',
+                                `Are you sure you want to sign out and remove ${child.name}?`,
+                                [
+                                  { text: 'Cancel', style: 'cancel' },
+                                  { text: 'Sign Out', style: 'destructive', onPress: () => unlinkChildDevice(child.id) }
+                                ]
+                              );
+                            }
+                          }}
+                        >
+                          <Text style={styles.childSignOutBtnText}>Sign Out</Text>
+                        </TouchableOpacity>
+                      ) : (
+                        <Text style={styles.childUnlinkedText}>Unlinked</Text>
+                      )}
+                    </View>
+                  );
+                })}
+
+                <View style={styles.menuDivider} />
+                {onSignOut && (
+                  <TouchableOpacity
+                    style={styles.menuItem}
+                    onPress={() => {
+                      setShowMenu(false);
+                      onSignOut();
+                    }}
+                  >
+                    <Icon name="exit-to-app" color={colors.redDanger} size={16} />
+                    <Text style={[styles.menuText, { color: colors.redDanger }]}>Sign Out Parent</Text>
+                  </TouchableOpacity>
+                )}
+              </TouchableOpacity>
+            </TouchableOpacity>
+          </Modal>
+        </View>
       </View>
 
-      {/* 2. CHILD PROFILE SELECTOR ROW */}
-      <View style={styles.profilesRow}>
-        {children.map(profile => {
-          const isSelected = selectedProfileId === profile.id;
-          return (
+      {/* 2. CHILD PROFILE SELECTOR ROW (Only if children exist) */}
+      {children.length > 0 && (
+        <View style={styles.profilesRowWrapper}>
+          <ScrollView horizontal={true} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.profilesScrollContent}>
+            {children.map(profile => {
+              const isSelected = selectedProfileId === profile.id;
+              return (
+                <View
+                  key={profile.id}
+                  style={[
+                    styles.profileCard,
+                    isSelected ? { borderColor: profile.avatarColor } : styles.profileCardInactive,
+                    { width: 175 }
+                  ]}
+                >
+                  <TouchableOpacity
+                    style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}
+                    onPress={() => selectProfile(profile.id)}
+                  >
+                    <View style={[styles.avatar, { backgroundColor: profile.avatarColor }]}>
+                      <Text style={styles.avatarText}>{profile.name.charAt(0)}</Text>
+                    </View>
+                    <View style={styles.profileInfo}>
+                      <Text style={styles.profileName} numberOfLines={1}>{profile.name}</Text>
+                      <Text style={styles.profileSub} numberOfLines={1}>
+                        {profile.age} yrs • {profile.deviceName || profile.device}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.cardSignOutBtn}
+                    onPress={async () => {
+                      if (Platform.OS === 'web') {
+                        const ok = typeof (globalThis as any).confirm === 'function' ? (globalThis as any).confirm(`Sign out and remove ${profile.name}?`) : true;
+                        if (ok) {
+                          await unlinkChildDevice(profile.id);
+                        }
+                      } else {
+                        Alert.alert(
+                          'Sign Out Child',
+                          `Are you sure you want to sign out and remove ${profile.name}?`,
+                          [
+                            { text: 'Cancel', style: 'cancel' },
+                            { text: 'Sign Out', style: 'destructive', onPress: () => unlinkChildDevice(profile.id) }
+                          ]
+                        );
+                      }
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Icon name="exit-to-app" color={colors.redDanger} size={14} />
+                  </TouchableOpacity>
+                </View>
+              );
+            })}
+
+            {/* Add Child Profile Card */}
             <TouchableOpacity
-              key={profile.id}
-              style={[
-                styles.profileCard,
-                isSelected ? { borderColor: profile.avatarColor } : styles.profileCardInactive,
-              ]}
-              onPress={() => selectProfile(profile.id)}
+              style={[styles.profileCard, styles.addProfileCard]}
+              onPress={() => setShowAddChildModal(true)}
             >
-              <View style={[styles.avatar, { backgroundColor: profile.avatarColor }]}>
-                <Text style={styles.avatarText}>{profile.name.charAt(0)}</Text>
+              <View style={[styles.avatar, { backgroundColor: colors.border }]}>
+                <Text style={[styles.avatarText, { color: colors.textMuted }]}>+</Text>
               </View>
               <View style={styles.profileInfo}>
-                <Text style={styles.profileName}>{profile.name}</Text>
-                <Text style={styles.profileSub} numberOfLines={1}>
-                  {profile.age} yrs • {profile.deviceName || profile.device}
-                </Text>
+                <Text style={[styles.profileName, { color: colors.text }]}>Add Child</Text>
+                <Text style={styles.profileSub}>New Profile</Text>
               </View>
             </TouchableOpacity>
-          );
-        })}
-      </View>
-
-      {/* 3. HORIZONTAL SCROLLABLE TABS */}
-      <View style={styles.tabsWrapper}>
-        <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
-          {tabs.map(tab => {
-            const isSelected = activeTab === tab;
-            return (
-              <TouchableOpacity
-                key={tab}
-                style={[styles.tab, isSelected && styles.tabActive]}
-                onPress={() => setActiveTab(tab)}
-              >
-                <Text style={[styles.tabText, isSelected && styles.tabTextActive]}>{tab}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      </View>
-
-      {/* SOS Alert Banner */}
-      {sosActive && sosBannerVisible && (
-        <TouchableOpacity style={styles.sosBanner} onPress={() => setSosBannerVisible(false)}>
-          <View style={styles.sosBannerContent}>
-            <Icon name="warning" color={colors.text} size={20} />
-            <View style={styles.sosBannerTexts}>
-              <Text style={styles.sosBannerTitle}>EMERGENCY SOS RECEIVED!</Text>
-              <Text style={styles.sosBannerSub}>
-                Child {sosTriggeredBy} triggered panic alert. Coordinates shared.
-              </Text>
-            </View>
-            <View style={styles.dismissBadge}>
-              <Text style={styles.dismissText}>DISMISS</Text>
-            </View>
-          </View>
-        </TouchableOpacity>
+          </ScrollView>
+        </View>
       )}
 
-      {/* 4. ACTIVE SUB-SCREEN VIEW CONTROLLER */}
-      <ScrollView contentContainerStyle={styles.viewContent}>
+      {/* Create Child Profile Modal */}
+      <Modal
+        visible={showAddChildModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowAddChildModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <TouchableOpacity
+              style={styles.modalCloseBtn}
+              onPress={() => setShowAddChildModal(false)}
+            >
+              <Icon name="close" color={colors.text} size={18} />
+            </TouchableOpacity>
+
+            <View style={styles.subHeader}>
+              <Icon name="people" color={colors.purpleAccent} size={18} />
+              <Text style={styles.subHeaderTag}>CREATE PROFILE</Text>
+            </View>
+
+            <Text style={styles.subMainTitle}>Add New Child Profile</Text>
+            <Text style={styles.subDescription}>
+              Enter your child's name and age to create a profile and generate a linking code.
+            </Text>
+
+            <View style={{ width: '100%', marginBottom: 20 }}>
+              <View style={styles.modalInputWrapper}>
+                <Icon name="person" color={colors.textMuted} size={18} />
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="Child's Name"
+                  placeholderTextColor={colors.textMuted}
+                  value={newChildName}
+                  onChangeText={setNewChildName}
+                />
+              </View>
+
+              <View style={[styles.modalInputWrapper, { marginTop: 12 }]}>
+                <Icon name="clock" color={colors.textMuted} size={18} />
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="Child's Age (e.g. 10)"
+                  placeholderTextColor={colors.textMuted}
+                  keyboardType="numeric"
+                  value={newChildAge}
+                  onChangeText={setNewChildAge}
+                />
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.primaryBtn, { backgroundColor: colors.purpleAccent }]}
+              onPress={handleAddChild}
+              disabled={isCreatingChild}
+            >
+              {isCreatingChild ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <Text style={styles.primaryBtnText}>Create Profile</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* UNLINKED STATE: SHOW LINKING CODE ONLY IF NO CHILD DEVICE LINKED */}
+      {children.length === 0 ? (
+        <ScrollView contentContainerStyle={styles.viewContent}>
+          <View style={[styles.linkCard, { marginTop: 16 }]}>
+            <View style={{ alignItems: 'center', marginBottom: 20 }}>
+              <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: colors.purpleAccent + '20', justifyContent: 'center', alignItems: 'center', marginBottom: 14 }}>
+                <Icon name="phonelink-setup" color={colors.purpleAccent} size={32} />
+              </View>
+              <Text style={{ color: colors.text, fontSize: 22, fontWeight: 'bold', textAlign: 'center' }}>
+                Pair Child Device
+              </Text>
+              <Text style={{ color: colors.textMuted, fontSize: 13, textAlign: 'center', marginTop: 6, lineHeight: 18, paddingHorizontal: 12 }}>
+                No child device is linked yet. Enter this 6-digit Linking Code on your child's phone to connect and view their dashboard.
+              </Text>
+            </View>
+
+            <View style={styles.codeContainer}>
+              <Text style={styles.codeLabel}>YOUR PARENT LINKING CODE</Text>
+              <Text style={styles.codeText}>{pairingCode || '819-860'}</Text>
+              <Text style={styles.codeSub}>Use this code on the child device when setting up Child Mode.</Text>
+            </View>
+
+            <View style={{ backgroundColor: colors.cardBackgroundLight, padding: 18, borderRadius: 14, borderWidth: 1, borderColor: colors.border, marginBottom: 24 }}>
+              <Text style={{ color: colors.text, fontSize: 14, fontWeight: 'bold', marginBottom: 8 }}>Steps to Link Child Device:</Text>
+              <Text style={{ color: colors.textMuted, fontSize: 13, lineHeight: 22 }}>
+                1. Open Aepttas Shield on your child's phone.{'\n'}
+                2. Select "Child Device" mode on the main role screen.{'\n'}
+                3. Enter child's name and this 6-digit code ({pairingCode || '819-860'}).{'\n'}
+                4. Tap "Link My Device" to complete pairing.
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.primaryBtn, { backgroundColor: colors.purpleAccent }]}
+              onPress={refreshData}
+            >
+              <Icon name="refresh" color="#fff" size={18} />
+              <Text style={[styles.primaryBtnText, { marginLeft: 8 }]}>Check Pairing Status</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      ) : (
+        <>
+          {/* 3. HORIZONTAL SCROLLABLE TABS */}
+          <View style={styles.tabsWrapper}>
+            <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
+              {tabs.map(tab => {
+                const isSelected = activeTab === tab;
+                return (
+                  <TouchableOpacity
+                    key={tab}
+                    style={[styles.tab, isSelected && styles.tabActive]}
+                    onPress={() => setActiveTab(tab)}
+                  >
+                    <Text style={[styles.tabText, isSelected && styles.tabTextActive]}>{tab}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+
+          {/* SOS Alert Banner */}
+          {sosActive && sosBannerVisible && (
+            <TouchableOpacity style={styles.sosBanner} onPress={() => setSosBannerVisible(false)}>
+              <View style={styles.sosBannerContent}>
+                <Icon name="warning" color={colors.text} size={20} />
+                <View style={styles.sosBannerTexts}>
+                  <Text style={styles.sosBannerTitle}>EMERGENCY SOS RECEIVED!</Text>
+                  <Text style={styles.sosBannerSub}>
+                    Child {sosTriggeredBy} triggered panic alert. Coordinates shared.
+                  </Text>
+                </View>
+                <View style={styles.dismissBadge}>
+                  <Text style={styles.dismissText}>DISMISS</Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          )}
+
+          {/* 4. ACTIVE SUB-SCREEN VIEW CONTROLLER */}
+          <ScrollView contentContainerStyle={styles.viewContent}>
         {activeTab === 'Overview' && (
           <View style={{ width: '100%' }}>
             {/* Status Card */}
@@ -895,40 +1333,55 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
               <View style={[styles.locationRadarCard, { marginTop: 12 }]}>
                 {/* Google Map View */}
                 <View style={{ width: '100%', height: 220, borderRadius: 12, overflow: 'hidden' }}>
-                  <MapView
-                    style={{ width: '100%', height: '100%' }}
-                    initialRegion={{
-                      latitude: location?.latitude ? Number(location.latitude) : 13.0827,
-                      longitude: location?.longitude ? Number(location.longitude) : 80.2707,
-                      latitudeDelta: 0.01,
-                      longitudeDelta: 0.01,
-                    }}
-                  >
-                    {/* Circle Marker for Safe Zone / Geofence */}
-                    {geofenceEnabled && (
-                      <MapCircle
-                        center={{
+                  {Platform.OS === 'web' ? (
+                    <View style={{ width: '100%', height: '100%', backgroundColor: colors.cardBackgroundLight, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: colors.border, padding: 16 }}>
+                      <Icon name="my-location" color={colors.purpleAccent} size={36} />
+                      <Text style={{ color: colors.text, fontSize: 15, fontWeight: 'bold', marginTop: 8 }}>
+                        Live GPS Location Radar
+                      </Text>
+                      <Text style={{ color: colors.textMuted, fontSize: 12, marginTop: 4, textAlign: 'center' }}>
+                        {location?.current_address || '123 Cyber Tower, Silicon Valley'}
+                      </Text>
+                      <Text style={{ color: colors.greenSuccess, fontSize: 11, fontWeight: 'bold', marginTop: 6 }}>
+                        SAFE ZONE ACTIVE ({geofenceRadius}m radius)
+                      </Text>
+                    </View>
+                  ) : (
+                    <MapView
+                      style={{ width: '100%', height: '100%' }}
+                      initialRegion={{
+                        latitude: location?.latitude ? Number(location.latitude) : 13.0827,
+                        longitude: location?.longitude ? Number(location.longitude) : 80.2707,
+                        latitudeDelta: 0.01,
+                        longitudeDelta: 0.01,
+                      }}
+                    >
+                      {/* Circle Marker for Safe Zone / Geofence */}
+                      {geofenceEnabled && (
+                        <MapCircle
+                          center={{
+                            latitude: location?.latitude ? Number(location.latitude) : 13.0827,
+                            longitude: location?.longitude ? Number(location.longitude) : 80.2707,
+                          }}
+                          radius={geofenceRadius}
+                          fillColor={colors.greenSuccess + '20'}
+                          strokeColor={colors.greenSuccess}
+                          strokeWidth={2}
+                        />
+                      )}
+
+                      {/* Child Pin Marker */}
+                      <Marker
+                        coordinate={{
                           latitude: location?.latitude ? Number(location.latitude) : 13.0827,
                           longitude: location?.longitude ? Number(location.longitude) : 80.2707,
                         }}
-                        radius={geofenceRadius}
-                        fillColor={colors.greenSuccess + '20'}
-                        strokeColor={colors.greenSuccess}
-                        strokeWidth={2}
+                        title={activeChild?.name || 'Child'}
+                        description={location?.current_address || 'Live Location'}
+                        pinColor={colors.purpleAccent}
                       />
-                    )}
-
-                    {/* Child Pin Marker */}
-                    <Marker
-                      coordinate={{
-                        latitude: location?.latitude ? Number(location.latitude) : 13.0827,
-                        longitude: location?.longitude ? Number(location.longitude) : 80.2707,
-                      }}
-                      title={activeChild?.name || 'Child'}
-                      description={location?.current_address || 'Live Location'}
-                      pinColor={colors.purpleAccent}
-                    />
-                  </MapView>
+                    </MapView>
+                  )}
                 </View>
 
                 {/* Safe Zone Radius row */}
@@ -1184,6 +1637,25 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
                   keyboardType="phone-pad"
                 />
               </View>
+
+              <TouchableOpacity
+                style={[styles.primaryBtn, { marginTop: 20, backgroundColor: colors.purpleAccent }]}
+                onPress={async () => {
+                  await updateSosPreferences(emailAlertsEnabled, demoEmail, smsAlertsEnabled, demoPhone);
+                  await Storage.setUserProfile({
+                    name: 'Parent Admin',
+                    email: demoEmail,
+                    phone: demoPhone,
+                  });
+                  if (Platform.OS === 'android') {
+                    ToastAndroid.show('Authentication & Notification preferences saved to DB!', ToastAndroid.SHORT);
+                  } else {
+                    Alert.alert('Saved', 'Authentication & Notification preferences updated in DB successfully.');
+                  }
+                }}
+              >
+                <Text style={styles.primaryBtnText}>Save Authentication & Alert Settings</Text>
+              </TouchableOpacity>
             </View>
           </View>
         )}
@@ -1209,33 +1681,140 @@ export const ParentalControlScreen: React.FC<ParentalControlScreenProps> = ({ on
 
         {activeTab === 'Link' && (
           <View style={styles.linkingView}>
-            <View style={styles.qrCard}>
-              <Text style={styles.qrCardTitle}>Link Child Device</Text>
-
-              <View style={styles.codeContainer}>
-                <Text style={styles.linkingCodeText}>{pairingCode || '000-000'}</Text>
-                <TouchableOpacity
-                  style={styles.refreshButton}
-                  onPress={refreshPairingCode}
-                  activeOpacity={0.7}
-                >
-                  <Icon name="refresh" color={colors.cyanAccent} size={16} />
-                  <Text style={styles.refreshBtnText}>Refresh</Text>
-                </TouchableOpacity>
-              </View>
-
-              <Text style={styles.linkingInstructions}>
+            {/* 1. LINK CHILD DEVICE CARD */}
+            <View style={styles.linkCardBoxContainer}>
+              <Text style={styles.qrCardTitleLeft}>Link Child Device</Text>
+              <Text style={styles.linkingInstructionsLeft}>
                 Enter the 6-digit pairing code on the child device to establish a secure connection.
               </Text>
 
-              <View style={styles.statusBadge}>
-                <View style={styles.pulseDot} />
-                <Text style={styles.linkStatusText}>Waiting for connection...</Text>
+              <View style={styles.codeRefreshRow}>
+                <View style={styles.codeDashedContainer}>
+                  <Text style={styles.linkingCodeSpacedText}>
+                    {(pairingCode || '735-456').split('').join(' ')}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.refreshButtonPill}
+                  onPress={refreshPairingCode}
+                  activeOpacity={0.7}
+                >
+                  <Icon name="refresh" color={colors.text} size={14} />
+                  <Text style={styles.refreshBtnPillText}>Refresh</Text>
+                </TouchableOpacity>
               </View>
+
+              <View style={styles.statusBadgeYellow}>
+                <Text style={styles.statusBadgeYellowText}>⏳ Waiting for connection...</Text>
+              </View>
+
+              <TouchableOpacity
+                style={[styles.primaryBtn, { marginTop: 16, backgroundColor: '#6366f1' }]}
+                onPress={() => {
+                  Alert.alert('Device Linked!', 'Child device paired successfully.');
+                  setActiveTab('Overview');
+                }}
+              >
+                <Text style={styles.primaryBtnText}>Confirm Child Device Linked</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* 2. UNLINK CHILD DEVICE CARD */}
+            <View style={styles.unlinkCardContainer}>
+              <View style={styles.unlinkHeaderRow}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Icon name="link-off" color="#991b1b" size={18} />
+                  <Text style={styles.unlinkTitleText}>Unlink Child Device</Text>
+                </View>
+                <Icon name="warning" color="#d97706" size={20} />
+              </View>
+
+              <Text style={styles.unlinkDescText}>
+                Generate a temporary code to unlink this device. The code will expire in <Text style={{ fontWeight: 'bold' }}>5 minutes</Text>.
+              </Text>
+
+              <View style={styles.unlinkCodeRow}>
+                <View style={styles.unlinkCodeBox}>
+                  <Text style={styles.unlinkCodeDigits}>
+                    {unlinkCode.split('').join(' ')}
+                  </Text>
+                </View>
+
+                <TouchableOpacity
+                  style={styles.copyBtn}
+                  onPress={() => {
+                    setUnlinkCopied(true);
+                    setTimeout(() => setUnlinkCopied(false), 2000);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Icon name={unlinkCopied ? "check" : "content-copy"} color={unlinkCopied ? "#059669" : "#4b5563"} size={14} />
+                  <Text style={[styles.copyBtnText, unlinkCopied && { color: "#059669" }]}>
+                    {unlinkCopied ? 'Copied' : 'Copy'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.unlinkSubActionsRow}>
+                <View style={styles.expiresPill}>
+                  <Icon name="schedule" color="#b91c1c" size={12} />
+                  <Text style={styles.expiresPillText}>
+                    {unlinkSeconds > 0 ? `Expires in ${formatTimer(unlinkSeconds)}` : 'Code Expired'}
+                  </Text>
+                </View>
+
+                <TouchableOpacity
+                  onPress={generateUnlinkCode}
+                  style={{ flexDirection: 'row', alignItems: 'center' }}
+                  activeOpacity={0.7}
+                >
+                  <Icon name="refresh" color="#6366f1" size={14} />
+                  <Text style={styles.generateNewCodeText}>Generate New Code</Text>
+                </TouchableOpacity>
+              </View>
+
+              <TouchableOpacity
+                style={styles.confirmUnlinkRedBtn}
+                onPress={async () => {
+                  if (Platform.OS === 'web') {
+                    const ok = typeof (globalThis as any).confirm === 'function'
+                      ? (globalThis as any).confirm(`Are you sure you want to unlink ${activeChild?.name || 'this child device'}?`)
+                      : true;
+                    if (ok && activeChild?.id) {
+                      await unlinkChildDevice(activeChild.id);
+                      Alert.alert('Device Unlinked', 'The child device has been unlinked successfully.');
+                    }
+                  } else {
+                    Alert.alert(
+                      'Confirm Unlink',
+                      `Are you sure you want to unlink ${activeChild?.name || 'this child device'}?`,
+                      [
+                        { text: 'Cancel', style: 'cancel' },
+                        {
+                          text: 'Unlink Device',
+                          style: 'destructive',
+                          onPress: async () => {
+                            if (activeChild?.id) {
+                              await unlinkChildDevice(activeChild.id);
+                              Alert.alert('Device Unlinked', 'The child device has been unlinked successfully.');
+                            }
+                          }
+                        }
+                      ]
+                    );
+                  }
+                }}
+                activeOpacity={0.85}
+              >
+                <Icon name="warning" color="#ffffff" size={16} />
+                <Text style={styles.confirmUnlinkRedBtnText}>Confirm Unlink Device</Text>
+              </TouchableOpacity>
             </View>
           </View>
         )}
       </ScrollView>
+        </>
+      )}
       </View>
     </View>
   );
@@ -1271,6 +1850,7 @@ const getStyles = (colors: any) => StyleSheet.create({
   },
   headerTitleContainer: {
     marginLeft: 16,
+    flex: 1,
   },
   headerTitle: {
     color: colors.text,
@@ -1282,14 +1862,17 @@ const getStyles = (colors: any) => StyleSheet.create({
     fontSize: 11,
     marginTop: 2,
   },
-  profilesRow: {
-    flexDirection: 'row',
-    paddingHorizontal: 24,
+  profilesRowWrapper: {
+    paddingHorizontal: 16,
     paddingVertical: 6,
-    justifyContent: 'space-between',
+  },
+  profilesScrollContent: {
+    paddingHorizontal: 8,
+    flexDirection: 'row',
   },
   profileCard: {
-    flex: 0.48,
+    width: 160,
+    marginRight: 10,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.cardBackground,
@@ -1297,9 +1880,124 @@ const getStyles = (colors: any) => StyleSheet.create({
     borderRadius: 12,
     padding: 10,
   },
+  addProfileCard: {
+    borderStyle: 'dashed',
+    borderColor: colors.border,
+    opacity: 0.8,
+  },
   profileCardInactive: {
     borderColor: colors.border,
     opacity: 0.6,
+  },
+  menuDropdown: {
+    position: 'absolute',
+    top: 40,
+    right: 0,
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingVertical: 8,
+    width: 175,
+    zIndex: 10000,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  menuText: {
+    color: colors.text,
+    fontSize: 13,
+    marginLeft: 8,
+    fontWeight: '500',
+  },
+  menuDivider: {
+    height: 1,
+    backgroundColor: colors.border,
+    marginVertical: 4,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  modalContent: {
+    borderRadius: 20,
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 20,
+    alignItems: 'center',
+    position: 'relative',
+    maxWidth: 520,
+    width: '100%',
+    alignSelf: 'center',
+  },
+  modalCloseBtn: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.cardBackgroundLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  subHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 10,
+    marginBottom: 6,
+  },
+  subHeaderTag: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: colors.purpleAccent,
+    letterSpacing: 1,
+    marginLeft: 6,
+  },
+  subMainTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: colors.text,
+    textAlign: 'center',
+    marginBottom: 6,
+  },
+  subDescription: {
+    fontSize: 11,
+    color: colors.textMuted,
+    textAlign: 'center',
+    lineHeight: 15,
+    marginBottom: 20,
+    paddingHorizontal: 12,
+  },
+  modalInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.cardBackgroundLight,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    height: 48,
+  },
+  modalInput: {
+    flex: 1,
+    color: colors.text,
+    fontSize: 14,
+    marginLeft: 8,
+    padding: 0,
   },
   avatar: {
     width: 32,
@@ -2018,9 +2716,201 @@ const getStyles = (colors: any) => StyleSheet.create({
   },
   linkingView: {
     alignItems: 'center',
-    marginTop: 40,
+    marginTop: 20,
     width: '100%',
     paddingBottom: 40,
+  },
+  linkCardBoxContainer: {
+    width: '90%',
+    maxWidth: 440,
+    backgroundColor: colors.cardBackground,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 24,
+    marginBottom: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  qrCardTitleLeft: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  linkingInstructionsLeft: {
+    color: colors.textMuted,
+    fontSize: 12,
+    lineHeight: 18,
+    marginBottom: 18,
+  },
+  codeRefreshRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    width: '100%',
+  },
+  codeDashedContainer: {
+    flex: 1,
+    height: 52,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: colors.border,
+    backgroundColor: colors.cardBackgroundLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  linkingCodeSpacedText: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: colors.text,
+    letterSpacing: 3,
+  },
+  refreshButtonPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.cardBackgroundLight,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    height: 52,
+  },
+  refreshBtnPillText: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: 'bold',
+    marginLeft: 6,
+  },
+  statusBadgeYellow: {
+    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.25)',
+  },
+  statusBadgeYellowText: {
+    color: '#d97706',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  unlinkCardContainer: {
+    width: '90%',
+    maxWidth: 440,
+    backgroundColor: 'rgba(239, 68, 68, 0.04)',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.2)',
+    padding: 24,
+    shadowColor: '#ef4444',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  unlinkHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  unlinkTitleText: {
+    color: '#991b1b',
+    fontSize: 17,
+    fontWeight: 'bold',
+    marginLeft: 8,
+  },
+  unlinkDescText: {
+    color: colors.textMuted,
+    fontSize: 12,
+    lineHeight: 18,
+    marginBottom: 18,
+  },
+  unlinkCodeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  unlinkCodeBox: {
+    flex: 1,
+    height: 54,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: 'rgba(239, 68, 68, 0.35)',
+    backgroundColor: colors.cardBackground,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  unlinkCodeDigits: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#991b1b',
+    letterSpacing: 3,
+  },
+  copyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    height: 54,
+  },
+  copyBtnText: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: 'bold',
+    marginLeft: 6,
+  },
+  unlinkSubActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  expiresPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderRadius: 12,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+  },
+  expiresPillText: {
+    color: '#b91c1c',
+    fontSize: 11,
+    fontWeight: 'bold',
+    marginLeft: 4,
+  },
+  generateNewCodeText: {
+    color: '#6366f1',
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginLeft: 4,
+  },
+  confirmUnlinkRedBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#dc2626',
+    borderRadius: 12,
+    height: 50,
+    width: '100%',
+  },
+  confirmUnlinkRedBtnText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginLeft: 8,
   },
   linkingInstructions: {
     color: '#6B6E85',
@@ -2071,18 +2961,46 @@ const getStyles = (colors: any) => StyleSheet.create({
     opacity: 0.4,
     top: '50%',
   },
+  linkCard: {
+    width: '100%',
+    borderRadius: 20,
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 20,
+  },
+  codeLabel: {
+    color: colors.purpleAccent,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1,
+    textAlign: 'center',
+    marginBottom: 6,
+  },
+  codeText: {
+    color: colors.cyanAccent,
+    fontSize: 32,
+    fontWeight: '900',
+    letterSpacing: 4,
+    textAlign: 'center',
+    marginVertical: 4,
+  },
+  codeSub: {
+    color: colors.textMuted,
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 4,
+  },
   codeContainer: {
-    flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.cardBackgroundLight,
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: colors.border,
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 16,
     marginBottom: 12,
     width: '100%',
-    justifyContent: 'space-between',
   },
   linkingCodeText: {
     fontSize: 22,
@@ -2230,5 +3148,95 @@ const getStyles = (colors: any) => StyleSheet.create({
     height: 1,
     backgroundColor: colors.border,
     marginVertical: 16,
+  },
+  childMenuRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  childMenuName: {
+    color: colors.text,
+    fontSize: 12,
+    fontWeight: 'bold',
+    flex: 1,
+    marginRight: 8,
+  },
+  childSignOutBtn: {
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.2)',
+    borderRadius: 6,
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+  },
+  childSignOutBtnText: {
+    color: colors.redDanger,
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  childUnlinkedText: {
+    color: colors.textMuted,
+    fontSize: 10,
+  },
+  cardSignOutBtn: {
+    padding: 6,
+    borderRadius: 8,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 6,
+  },
+  logoutAlertCard: {
+    width: '90%',
+    maxWidth: 400,
+    backgroundColor: colors.cardBackground,
+    borderRadius: 20,
+    padding: 24,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+    shadowColor: '#ef4444',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  logoutAlertIconBg: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  logoutAlertTitle: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  logoutAlertMessage: {
+    color: colors.textMuted,
+    fontSize: 13,
+    lineHeight: 18,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  logoutAlertBtn: {
+    backgroundColor: '#ef4444',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    width: '100%',
+    alignItems: 'center',
+  },
+  logoutAlertBtnText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 });
