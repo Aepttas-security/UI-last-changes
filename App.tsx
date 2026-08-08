@@ -57,7 +57,7 @@ function AppContent({ renderScreen }: { renderScreen: () => React.ReactNode }) {
 }
 
 function App() {
-  const [currentScreen, setCurrentScreen] = useState<ScreenName>('Login');
+  const [currentScreen, setCurrentScreen] = useState<ScreenName>('DeviceRoleSelection');
   const [signUpSuccessMessage, setSignUpSuccessMessage] = useState('');
 
   useEffect(() => {
@@ -77,9 +77,12 @@ function App() {
             }
           }
           setCurrentScreen('Dashboard');
+        } else {
+          setCurrentScreen('DeviceRoleSelection');
         }
       } catch (error) {
         console.error('[Auth] Session restoration check failed:', error);
+        setCurrentScreen('DeviceRoleSelection');
       }
     }
     checkLaunchGuard();
