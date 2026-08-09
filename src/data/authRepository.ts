@@ -5,6 +5,22 @@ import { Storage } from '../utils/storage';
 
 const getBaseUrl = () => getAuthBaseUrl();
 
+async function fetchWithTimeout(url: string, options: any, timeout = 5000): Promise<Response> {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    clearTimeout(id);
+    return response;
+  } catch (error) {
+    clearTimeout(id);
+    throw error;
+  }
+}
+
 export interface LoginPayload {
   email: string;
   password: string;
@@ -38,7 +54,7 @@ export async function loginUser(payload: LoginPayload): Promise<LoginResponse> {
   const usernamePrefix = cleanEmail.split('@')[0];
 
   try {
-    let response = await fetch(`${getBaseUrl()}/api/auth/login`, {
+    let response = await fetchWithTimeout(`${getBaseUrl()}/api/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -57,7 +73,7 @@ export async function loginUser(payload: LoginPayload): Promise<LoginResponse> {
       const formDetails = new URLSearchParams();
       formDetails.append('username', cleanEmail);
       formDetails.append('password', payload.password);
-      response = await fetch(`${getBaseUrl()}/api/auth/login`, {
+      response = await fetchWithTimeout(`${getBaseUrl()}/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -82,38 +98,25 @@ export async function loginUser(payload: LoginPayload): Promise<LoginResponse> {
       } as AuthError;
     }
 
+    // Guard: reject any response body that explicitly signals failure (even on HTTP 200)
+    if ((data as any).status === 'error') {
+      throw {
+        message: (data as any).detail ?? 'Invalid email or password.',
+        field: 'general',
+      } as AuthError;
+    }
+
     loginData = data as LoginResponse;
   } catch (networkError) {
     // If it's a validation/auth failure thrown by us in try block, rethrow it
     if ((networkError as any).field) {
       throw networkError;
     }
-    console.warn('[Auth] Server offline. Verifying credentials against local accounts store.');
-    const localAccount = await Storage.findRegisteredAccount(payload.email);
-    
-    if (localAccount) {
-      if (localAccount.password && localAccount.password !== payload.password) {
-        throw {
-          message: 'Invalid password. Please enter the correct password.',
-          field: 'password',
-        } as AuthError;
-      }
-      const displayName = localAccount.name || usernamePrefix.charAt(0).toUpperCase() + usernamePrefix.slice(1);
-      const userId = localAccount.user_id || Math.floor(Math.random() * 8999) + 1000;
-      loginData = {
-        status: 'success',
-        message: 'Authentication verification passed successfully!',
-        user_id: userId,
-        parent_name: displayName,
-        token_type: 'bearer',
-        access_token: `mock_secure_jwt_token_for_${userId}`,
-      };
-    } else {
-      throw {
-        message: 'No registered user account found with this email. Please check your email address or sign up first.',
-        field: 'email',
-      } as AuthError;
-    }
+    console.error('[Auth] Server offline or database connection failed during login:', networkError);
+    throw {
+      message: 'Authentication server is currently offline or unreachable. Please try again later.',
+      field: 'general',
+    } as AuthError;
   }
 
   await saveAuthSession(loginData.access_token, loginData.user_id, loginData.parent_name);
@@ -133,7 +136,7 @@ export async function registerUser(payload: {
   const usernamePrefix = cleanEmail.split('@')[0];
 
   try {
-    response = await fetch(`${getBaseUrl()}/api/auth/register`, {
+    response = await fetchWithTimeout(`${getBaseUrl()}/api/auth/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -149,20 +152,12 @@ export async function registerUser(payload: {
         role: 'PARENT',
       }),
     });
-  } catch {
-    console.warn('[Auth] Server offline. Using local client fallback registration.');
-    const fallbackId = Math.floor(Math.random() * 8999) + 1000;
-    await Storage.saveRegisteredAccount({
-      name: payload.name.trim(),
-      email: cleanEmail,
-      password: payload.password,
-      user_id: fallbackId,
-    });
-    return {
-      status: 'success',
-      message: 'Account successfully registered!',
-      user_id: fallbackId,
-    };
+  } catch (err) {
+    console.error('[Auth] Server offline or database connection failed during registration:', err);
+    throw {
+      message: 'Registration server is currently offline or unreachable. Please try again later.',
+      field: 'general',
+    } as AuthError;
   }
 
   const data = await response.json();

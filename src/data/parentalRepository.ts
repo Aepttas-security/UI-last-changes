@@ -4,6 +4,23 @@ import { Storage } from '../utils/storage';
 
 const getBaseUrl = () => getApiBaseUrl();
 
+const originalFetch = global.fetch;
+const fetch = async (url: string | Request, options: any = {}) => {
+  if (options && options.signal) {
+    return originalFetch(url, options);
+  }
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), 5000);
+  try {
+    const response = await originalFetch(url, { ...options, signal: controller.signal });
+    clearTimeout(id);
+    return response;
+  } catch (error) {
+    clearTimeout(id);
+    throw error;
+  }
+};
+
 const getAuthHeader = async () => {
   const token = await Storage.getAuthToken();
   return {

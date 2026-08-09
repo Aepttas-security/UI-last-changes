@@ -11,6 +11,23 @@ export interface DashboardMetrics {
 const getBaseUrl = () => getApiBaseUrl();
 const getGeoUrl = () => getGeoBaseUrl();
 
+const originalFetch = global.fetch;
+const fetch = async (url: string | Request, options: any = {}) => {
+  if (options && options.signal) {
+    return originalFetch(url, options);
+  }
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), 5000);
+  try {
+    const response = await originalFetch(url, { ...options, signal: controller.signal });
+    clearTimeout(id);
+    return response;
+  } catch (error) {
+    clearTimeout(id);
+    throw error;
+  }
+};
+
 export const ScannerRepository = {
   /**
    * Uploads and scans the APK by sending it to the backend server.

@@ -22,12 +22,9 @@ const getHostFromExpo = (): string | null => {
   return null;
 };
 
-export const POSTGRES_DB_URL = 'postgresql://db_team:intern@100.112.49.39:5432/aepttas_xdr';
-export const TARGET_DB_HOST = '100.112.49.39';
-export const TARGET_DB_PORT = 5432;
 
 const expoIp = getHostFromExpo();
-const DEFAULT_HOST = expoIp || TARGET_DB_HOST || (Platform.OS === 'android' ? '10.0.2.2' : '127.0.0.1');
+const DEFAULT_HOST = expoIp || (Platform.OS === 'android' ? '10.0.2.2' : '127.0.0.1');
 const DEFAULT_PORT = '8000';
 
 let customBaseUrl: string | null = null;
