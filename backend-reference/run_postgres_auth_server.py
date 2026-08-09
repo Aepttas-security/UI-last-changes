@@ -17,7 +17,7 @@ from passlib.context import CryptContext
 import uvicorn
 
 # 1. Database Connection URL
-DATABASE_URL = "postgresql+asyncpg://apt_malware_app:intren%40_mal@100.112.49.39:5432/aepttas_xdr"
+DATABASE_URL = "postgresql+asyncpg://apt_parentctrl_app:Par%40intern_aepttas@100.112.49.39:5432/aepttas_xdr"
 
 connect_args = {
     "server_settings": {"search_path": "apt"}
