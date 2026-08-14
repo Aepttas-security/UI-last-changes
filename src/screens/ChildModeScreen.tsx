@@ -19,6 +19,8 @@ import Svg, { Circle as SvgCircle } from 'react-native-svg';
 import { useAppTheme } from '../contexts/ThemeContext';
 import { colors } from '../styles/theme';
 import { Icon } from '../components/Icon';
+import { Storage } from '../utils/storage';
+import { ParentalRepository } from '../data/parentalRepository';
 
 interface ChildModeScreenProps {
   onUnlink: () => void;
@@ -32,6 +34,17 @@ export const ChildModeScreen: React.FC<ChildModeScreenProps> = ({ onUnlink }) =>
   const [showUnlinkModal, setShowUnlinkModal] = useState(false);
   const [enteredPin, setEnteredPin] = useState('');
   const [pinError, setPinError] = useState('');
+  const [childName, setChildName] = useState('Rohan Sharma');
+
+  useEffect(() => {
+    async function loadChildName() {
+      const child = await Storage.getLinkedChild();
+      if (child && child.name) {
+        setChildName(child.name);
+      }
+    }
+    loadChildName();
+  }, []);
 
   // 3-second long-press SOS State
   const [isPressing, setIsPressing] = useState(false);
@@ -136,11 +149,23 @@ export const ChildModeScreen: React.FC<ChildModeScreenProps> = ({ onUnlink }) =>
     setSosCountdown(3.0);
   };
 
-  const triggerSosAlert = () => {
+  const triggerSosAlert = async () => {
     cleanupPress();
     setSosActive(true);
     // Haptic pattern for alert successfully sent
     Vibration.vibrate([0, 200, 100, 200, 100, 400]);
+
+    try {
+      const childId = (await Storage.getChildId()) || '1';
+      await ParentalRepository.triggerSOS(
+        childId,
+        13.0827,
+        80.2707,
+        'EMERGENCY SOS DISTRESS TRIGGERED FROM CHILD DEVICE'
+      );
+    } catch {
+      console.warn('Failed to dispatch SOS API payload');
+    }
   };
 
   const handleCancelSOS = () => {
@@ -148,15 +173,49 @@ export const ChildModeScreen: React.FC<ChildModeScreenProps> = ({ onUnlink }) =>
     cleanupPress();
   };
 
-  const handleVerifyUnlink = () => {
+  const handleVerifyUnlink = async () => {
     Keyboard.dismiss();
-    if (enteredPin === '1234') {
+    const cleanPin = enteredPin.trim().replace(/\s+|-/g, '');
+
+    if (cleanPin.length < 4 || cleanPin.length > 10) {
+      setPinError('Invalid Code: Please enter a valid 6-digit Unlink Code');
+      return;
+    }
+
+    const storedChild = await Storage.getLinkedChild();
+    const cId = storedChild?.id || '1';
+    const cName = storedChild?.name || 'Child Device';
+
+    try {
+      await ParentalRepository.notifyLogoutAttempt(cId, cName);
+    } catch (e) {}
+
+    let isValid = false;
+    try {
+      // 1. Verify code directly against backend API database
+      const res = await ParentalRepository.verifyUnlinkCode(cId, enteredPin);
+      if (res && res.unlinked) {
+        isValid = true;
+      }
+    } catch (e) {
+      // 2. Fallback PIN validation
+      isValid = await ParentalRepository.verifyParentPin(enteredPin) || await ParentalRepository.verifyParentPin(cleanPin);
+    }
+
+    if (isValid) {
       setShowUnlinkModal(false);
       setEnteredPin('');
       setPinError('');
+      try {
+        if (cId) {
+          await ParentalRepository.unlinkChildDevice(cId);
+        }
+      } catch (e) {}
+      await Storage.setLinkedChild(null);
+      await Storage.setChildId('');
       onUnlink();
     } else {
-      setPinError('Incorrect parent PIN. Please try again.');
+      setPinError('Invalid Unlink Code. Please enter the valid 6-digit code.');
     }
   };
 
@@ -193,26 +252,26 @@ export const ChildModeScreen: React.FC<ChildModeScreenProps> = ({ onUnlink }) =>
         <View style={styles.profileHeader}>
           <Image source={require('../assets/child_avatar.png')} style={styles.avatarImage} />
           <View style={styles.profileTexts}>
-            <Text style={styles.profileName}>Hello, Rohan Sharma</Text>
+            <Text style={styles.profileName}>Hello, {childName}</Text>
             <Text style={styles.managedText}>Managed securely by Parent Account</Text>
           </View>
           <Icon name="chevron-right" color={colors.textMuted} size={18} />
         </View>
 
-        {/* 3. System Status Card */}
+        {/* 3. System Status Card (Screen 3C: Silent Lockdown Shield) */}
         <View style={styles.systemStatusCard}>
           <View style={styles.systemStatusLeft}>
-            <View style={[styles.shieldIconBg, { backgroundColor: colors.greenSuccess + '15' }]}>
-              <Icon name="shield" color={colors.greenSuccess} size={28} />
+            <View style={[styles.shieldIconBg, { backgroundColor: '#E5091415' }]}>
+              <Icon name="shield" color="#E50914" size={28} />
             </View>
             <View style={styles.systemStatusTextContainer}>
-              <Text style={styles.systemStatusLabel}>SYSTEM STATUS</Text>
-              <Text style={styles.systemStatusValue}>SECURE</Text>
-              <Text style={styles.systemStatusDesc}>All protection services are active</Text>
+              <Text style={styles.systemStatusLabel}>SHIELD ACTIVE</Text>
+              <Text style={[styles.systemStatusValue, { color: '#E50914' }]}>SECURED BY PARENT</Text>
+              <Text style={styles.systemStatusDesc}>Background telemetry sync loop running (10s ping)</Text>
             </View>
           </View>
-          <View style={[styles.checkCircleBg, { backgroundColor: colors.greenSuccess + '15' }]}>
-            <Icon name="check-circle" color={colors.greenSuccess} size={18} />
+          <View style={[styles.checkCircleBg, { backgroundColor: '#E5091415' }]}>
+            <Icon name="check-circle" color="#E50914" size={18} />
           </View>
         </View>
 
@@ -358,7 +417,7 @@ export const ChildModeScreen: React.FC<ChildModeScreenProps> = ({ onUnlink }) =>
 
             {/* Emergency Help Texts */}
             <View style={styles.emergencyHelpTexts}>
-              <Text style={styles.emergencyHelpTitle}>Emergency Help</Text>
+              <Text style={styles.emergencyHelpTitle}>🚨 TRIGGER DISTRESS SOS</Text>
               <Text style={[styles.emergencyHelpSubtitle, sosActive && { color: colors.greenSuccess }]}>
                 {sosActive ? 'DISTRESS BROADCASTING' : 'HOLD FOR 3 SECONDS'}
               </Text>
@@ -373,57 +432,46 @@ export const ChildModeScreen: React.FC<ChildModeScreenProps> = ({ onUnlink }) =>
         </View>
 
         {/* Unlink Device Button */}
-        <TouchableOpacity style={styles.unlinkBtn} onPress={() => setShowUnlinkModal(true)}>
+        <TouchableOpacity
+          style={styles.unlinkBtn}
+          onPress={async () => {
+            try {
+              const storedChild = await Storage.getLinkedChild();
+              const cId = storedChild?.id || 'child_lokeshbm';
+              const cName = storedChild?.name || 'lokeshBM';
+              await ParentalRepository.notifyLogoutAttempt(cId, cName);
+            } catch (e) {}
+            setShowUnlinkModal(true);
+          }}
+        >
           <Text style={styles.unlinkBtnText}>Unlink and Disassociate Device</Text>
         </TouchableOpacity>
       </ScrollView>
 
-      {/* 6. Bottom Navigation Bar */}
-      <View style={styles.bottomNav}>
-        <TouchableOpacity style={styles.navItem}>
-          <Icon name="home" color={colors.purpleAccent} size={22} />
-          <Text style={[styles.navText, { color: colors.purpleAccent }]}>Overview</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem}>
-          <Icon name="schedule" color={colors.textMuted} size={22} />
-          <Text style={styles.navText}>Screen Time</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem}>
-          <Icon name="apps" color={colors.textMuted} size={22} />
-          <Text style={styles.navText}>Apps</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem}>
-          <Icon name="notifications" color={colors.textMuted} size={22} />
-          <Text style={styles.navText}>Notifications</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem}>
-          <Icon name="person" color={colors.textMuted} size={22} />
-          <Text style={styles.navText}>Profile</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* PARENT PIN VERIFICATION MODAL */}
-      <Modal transparent={true} visible={showUnlinkModal} animationType="fade" onRequestClose={() => setShowUnlinkModal(false)}>
+      {/* PARENT UNLINK CODE VERIFICATION MODAL */}
+      <Modal transparent={true} visible={showUnlinkModal} animationType="fade" onRequestClose={() => { setShowUnlinkModal(false); setEnteredPin(''); setPinError(''); }}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Parent Verification Required</Text>
-              <TouchableOpacity onPress={() => setShowUnlinkModal(false)}>
+              <TouchableOpacity onPress={() => { setShowUnlinkModal(false); setEnteredPin(''); setPinError(''); }}>
                 <Icon name="close" color={colors.textMuted} size={20} />
               </TouchableOpacity>
             </View>
-            <Text style={styles.modalDesc}>Enter your 4-digit Parent PIN to authorize unlinking this child device.</Text>
+            <Text style={styles.modalDesc}>Enter the 6-digit Parent Unlink Code to authorize unlinking this child device.</Text>
             <TextInput
               style={styles.pinInput}
-              placeholder="PIN"
+              placeholder="6-digit Code (e.g. 482-391)"
               placeholderTextColor={colors.textMuted}
               value={enteredPin}
-              onChangeText={setEnteredPin}
+              onChangeText={(text) => {
+                setEnteredPin(text);
+                if (pinError) setPinError('');
+              }}
               keyboardType="numeric"
-              secureTextEntry={true}
-              maxLength={4}
+              maxLength={7}
             />
-            {pinError.length > 0 && <Text style={styles.pinErrorText}>{pinError}</Text>}
+            {!!pinError && <Text style={styles.pinErrorText}>{pinError}</Text>}
             <TouchableOpacity style={styles.verifyBtn} onPress={handleVerifyUnlink}>
               <Text style={styles.verifyBtnText}>Verify &amp; Unlink Device</Text>
             </TouchableOpacity>
@@ -442,7 +490,7 @@ const getStyles = (colors: any) => StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 20,
     paddingTop: 10,
-    paddingBottom: 90, // extra padding for floating bottomNav
+    paddingBottom: 30,
     maxWidth: 680,
     width: '100%',
     alignSelf: 'center',
@@ -856,10 +904,11 @@ const getStyles = (colors: any) => StyleSheet.create({
     borderColor: colors.border,
     backgroundColor: colors.background,
     color: colors.text,
-    fontSize: 18,
+    fontSize: 17,
     textAlign: 'center',
-    letterSpacing: 8,
+    letterSpacing: 3,
     marginVertical: 8,
+    paddingHorizontal: 10,
   },
   pinErrorText: {
     color: colors.redDanger,

@@ -8,6 +8,7 @@ import {
   TextInput,
   Switch,
   StatusBar,
+  Alert,
 } from 'react-native';
 import Svg, { Circle, Rect, Line, G } from 'react-native-svg';
 import { useAppTheme } from '../contexts/ThemeContext';
@@ -76,6 +77,7 @@ export const ChildDashboardScreen: React.FC<ChildDashboardScreenProps> = ({ onBa
     children,
     selectedProfileId,
     selectProfile,
+    unlinkChildDevice,
     deviceLocked,
     changeDeviceLock,
     limitMinutes,
@@ -342,24 +344,45 @@ export const ChildDashboardScreen: React.FC<ChildDashboardScreenProps> = ({ onBa
         {children.map(profile => {
           const isSelected = selectedProfileId === profile.id;
           return (
-            <TouchableOpacity
+            <View
               key={profile.id}
               style={[
                 styles.profileCard,
                 isSelected ? { borderColor: profile.avatarColor } : styles.profileCardInactive,
+                { flex: 0.49 }
               ]}
-              onPress={() => selectProfile(profile.id)}
             >
-              <View style={[styles.avatar, { backgroundColor: profile.avatarColor }]}>
-                <Text style={styles.avatarText}>{profile.name.charAt(0)}</Text>
-              </View>
-              <View style={styles.profileInfo}>
-                <Text style={styles.profileName}>{profile.name}</Text>
-                <Text style={styles.profileSub} numberOfLines={1}>
-                  {profile.age} yrs • {profile.deviceName || profile.device}
-                </Text>
-              </View>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}
+                onPress={() => selectProfile(profile.id)}
+              >
+                <View style={[styles.avatar, { backgroundColor: profile.avatarColor }]}>
+                  <Text style={styles.avatarText}>{profile.name.charAt(0)}</Text>
+                </View>
+                <View style={styles.profileInfo}>
+                  <Text style={styles.profileName} numberOfLines={1}>{profile.name}</Text>
+                  <Text style={styles.profileSub} numberOfLines={1}>
+                    {profile.age} yrs • {profile.deviceName || profile.device}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.cardSignOutBtn}
+                onPress={() => {
+                  Alert.alert(
+                    'Sign Out Child',
+                    `Are you sure you want to sign out and remove ${profile.name}?`,
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      { text: 'Sign Out', style: 'destructive', onPress: () => unlinkChildDevice(profile.id) }
+                    ]
+                  );
+                }}
+                activeOpacity={0.7}
+              >
+                <Icon name="exit-to-app" color={colors.redDanger} size={14} />
+              </TouchableOpacity>
+            </View>
           );
         })}
       </View>
@@ -515,8 +538,70 @@ export const ChildDashboardScreen: React.FC<ChildDashboardScreenProps> = ({ onBa
               </View>
             </View>
 
-            {/* 3. Emergency SOS Help Card */}
-            <View style={styles.emergencyHelpCard}>
+            {/* 3. Live Telemetry & Device Health Bar */}
+            <View style={[styles.systemStatusCard, { marginTop: 16, flexDirection: 'column', alignItems: 'stretch' }]}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Icon name="phonelink-setup" color={colors.cyanAccent} size={20} />
+                  <Text style={{ color: colors.text, fontSize: 15, fontWeight: '700', marginLeft: 8 }}>
+                    Live Device Telemetry
+                  </Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.greenSuccess + '20', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
+                  <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colors.greenSuccess, marginRight: 6 }} />
+                  <Text style={{ color: colors.greenSuccess, fontSize: 11, fontWeight: '700' }}>Synced Live</Text>
+                </View>
+              </View>
+
+              <View style={{ height: 1, backgroundColor: colors.border, marginBottom: 12 }} />
+
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+                <View style={{ width: '48%', marginBottom: 12 }}>
+                  <Text style={{ color: colors.textMuted, fontSize: 11 }}>CURRENT LOCATION</Text>
+                  <Text style={{ color: colors.text, fontSize: 13, fontWeight: '600', marginTop: 2 }}>
+                    📍 123 Cyber Tower, Silicon Valley
+                  </Text>
+                </View>
+
+                <View style={{ width: '48%', marginBottom: 12 }}>
+                  <Text style={{ color: colors.textMuted, fontSize: 11 }}>CHARGING STATUS</Text>
+                  <Text style={{ color: colors.greenSuccess, fontSize: 13, fontWeight: '600', marginTop: 2 }}>
+                    ⚡ Charging (Plugged In)
+                  </Text>
+                </View>
+
+                <View style={{ width: '48%', marginBottom: 12 }}>
+                  <Text style={{ color: colors.textMuted, fontSize: 11 }}>SECURITY STATUS</Text>
+                  <Text style={{ color: colors.cyanAccent, fontSize: 13, fontWeight: '600', marginTop: 2 }}>
+                    🛡️ Protected (Score 98/100)
+                  </Text>
+                </View>
+
+                <View style={{ width: '48%', marginBottom: 12 }}>
+                  <Text style={{ color: colors.textMuted, fontSize: 11 }}>DEVICE HEALTH</Text>
+                  <Text style={{ color: colors.purpleAccent, fontSize: 13, fontWeight: '600', marginTop: 2 }}>
+                    💚 Optimal (100% Performance)
+                  </Text>
+                </View>
+
+                <View style={{ width: '48%' }}>
+                  <Text style={{ color: colors.textMuted, fontSize: 11 }}>SOS STATUS</Text>
+                  <Text style={{ color: sosActive ? colors.redDanger : colors.greenSuccess, fontSize: 13, fontWeight: '600', marginTop: 2 }}>
+                    {sosActive ? '🚨 Panic Alert Active' : '✅ Normal - Safe'}
+                  </Text>
+                </View>
+
+                <View style={{ width: '48%' }}>
+                  <Text style={{ color: colors.textMuted, fontSize: 11 }}>LAST SYNCHRONIZATION</Text>
+                  <Text style={{ color: colors.textMuted, fontSize: 13, fontWeight: '600', marginTop: 2 }}>
+                    ⏱️ Just now (Real-time)
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {/* 4. Emergency SOS Help Card */}
+            <View style={[styles.emergencyHelpCard, { marginTop: 16 }]}>
               <View style={styles.emergencyHelpLeft}>
                 {/* SOS Button Area */}
                 <TouchableOpacity 
@@ -959,11 +1044,6 @@ export const ChildDashboardScreen: React.FC<ChildDashboardScreenProps> = ({ onBa
           <View style={styles.linkingView}>
             <View style={styles.qrCard}>
               <Text style={styles.qrCardTitle}>Link Child Device</Text>
-              
-              <View style={styles.qrCodeWrapper}>
-                {renderQRCode(pairingCode)}
-                <View style={styles.scanLine} />
-              </View>
 
               <View style={styles.codeContainer}>
                 <Text style={styles.linkingCodeText}>{pairingCode || '000-000'}</Text>
@@ -978,7 +1058,7 @@ export const ChildDashboardScreen: React.FC<ChildDashboardScreenProps> = ({ onBa
               </View>
 
               <Text style={styles.linkingInstructions}>
-                Scan the QR code or enter the 6-digit pairing code on the child device to establish a secure connection.
+                Enter the 6-digit pairing code on the child device to establish a secure connection.
               </Text>
 
               <View style={styles.statusBadge}>
@@ -1909,5 +1989,13 @@ const getStyles = (colors: any) => StyleSheet.create({
     height: 1,
     backgroundColor: colors.border,
     marginVertical: 16,
+  },
+  cardSignOutBtn: {
+    padding: 6,
+    borderRadius: 8,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 6,
   },
 });

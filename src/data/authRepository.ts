@@ -1,7 +1,25 @@
 
-// Parental Control Backend running on port 8002
-// PC Local IP: 192.168.39.211 — physical device must be on same WiFi
-const AUTH_BASE_URL = 'http://192.168.39.211:8002';
+import { saveAuthSession } from '../utils/authStorage';
+import { getAuthBaseUrl } from '../config/apiConfig';
+import { Storage } from '../utils/storage';
+
+const getBaseUrl = () => getAuthBaseUrl();
+
+async function fetchWithTimeout(url: string, options: any, timeout = 5000): Promise<Response> {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    clearTimeout(id);
+    return response;
+  } catch (error) {
+    clearTimeout(id);
+    throw error;
+  }
+}
 
 export interface LoginPayload {
   email: string;
@@ -31,56 +49,82 @@ export interface AuthError {
  * Returns a LoginResponse on success, or throws an AuthError on failure.
  */
 export async function loginUser(payload: LoginPayload): Promise<LoginResponse> {
-  let response: Response;
+  let loginData: LoginResponse;
+  const cleanEmail = payload.email.trim().toLowerCase();
+  const usernamePrefix = cleanEmail.split('@')[0];
 
   try {
-    response = await fetch(`${AUTH_BASE_URL}/api/auth/login`, {
+    let response = await fetchWithTimeout(`${getBaseUrl()}/api/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
       },
       body: JSON.stringify({
-        email: payload.email.trim().toLowerCase(),
+        email: cleanEmail,
+        username: cleanEmail,
+        user_name: usernamePrefix,
         password: payload.password,
       }),
     });
-  } catch (networkError) {
-    console.warn('[Auth] Server offline. Using local client fallback authentication.');
-    // Returns a mock response matching LoginResponse structure on network connection failure
-    return {
-      status: 'success',
-      message: 'Authentication verification passed successfully! (Local Fallback Mode)',
-      user_id: 2,
-      parent_name: 'Alex Anderson (Offline)',
-      token_type: 'bearer',
-      access_token: 'mock_secure_jwt_token_for_fallback',
-    };
-  }
 
-  const data = await response.json();
-
-  if (!response.ok) {
-    // FastAPI validation errors (422) come as { detail: [...] }
-    if (response.status === 422 && Array.isArray(data.detail)) {
-      const firstError = data.detail[0];
-      const field = firstError?.loc?.[1] ?? 'general'; // 'email' or 'password'
-      const msg: string = firstError?.msg ?? 'Validation error.';
-      throw { message: msg.replace('Value error, ', ''), field } as AuthError;
+    // Fallback if backend FastAPI server expects x-www-form-urlencoded (OAuth2PasswordRequestForm)
+    if (response.status === 422 || response.status === 415) {
+      const formDetails = new URLSearchParams();
+      formDetails.append('username', cleanEmail);
+      formDetails.append('password', payload.password);
+      response = await fetchWithTimeout(`${getBaseUrl()}/api/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          Accept: 'application/json',
+        },
+        body: formDetails.toString(),
+      });
     }
 
-    // Auth failure (401) or other errors come as { detail: "..." }
+    const data = await response.json();
+
+    if (!response.ok) {
+      if (response.status === 422 && Array.isArray(data.detail)) {
+        const firstError = data.detail[0];
+        const field = firstError?.loc?.[1] ?? 'general';
+        const msg: string = firstError?.msg ?? 'Validation error.';
+        throw { message: msg.replace('Value error, ', ''), field } as AuthError;
+      }
+      throw {
+        message: data.detail ?? 'Invalid email or password. Access denied.',
+        field: 'general',
+      } as AuthError;
+    }
+
+    // Guard: reject any response body that explicitly signals failure (even on HTTP 200)
+    if ((data as any).status === 'error') {
+      throw {
+        message: (data as any).detail ?? 'Invalid email or password.',
+        field: 'general',
+      } as AuthError;
+    }
+
+    loginData = data as LoginResponse;
+  } catch (networkError) {
+    // If it's a validation/auth failure thrown by us in try block, rethrow it
+    if ((networkError as any).field) {
+      throw networkError;
+    }
+    console.error('[Auth] Server offline or database connection failed during login:', networkError);
     throw {
-      message: data.detail ?? 'Login failed. Please try again.',
+      message: 'Authentication server is currently offline or unreachable. Please try again later.',
       field: 'general',
     } as AuthError;
   }
 
-  return data as LoginResponse;
+  await saveAuthSession(loginData.access_token, loginData.user_id, loginData.parent_name);
+  return loginData;
 }
 
 /**
- * Registers a new parent account on the backend.
+ * Registers a new parent account on the backend table apt_users_b.
  */
 export async function registerUser(payload: {
   name: string;
@@ -88,27 +132,32 @@ export async function registerUser(payload: {
   password: string;
 }): Promise<{ status: string; message: string; user_id: number }> {
   let response: Response;
+  const cleanEmail = payload.email.trim().toLowerCase();
+  const usernamePrefix = cleanEmail.split('@')[0];
 
   try {
-    response = await fetch(`${AUTH_BASE_URL}/api/auth/register`, {
+    response = await fetchWithTimeout(`${getBaseUrl()}/api/auth/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
       },
       body: JSON.stringify({
+        username: usernamePrefix,
         name: payload.name.trim(),
-        email: payload.email.trim().toLowerCase(),
+        full_name: payload.name.trim(),
+        email: cleanEmail,
         password: payload.password,
+        password_hash: payload.password,
+        role: 'PARENT',
       }),
     });
-  } catch {
-    console.warn('[Auth] Server offline. Using local client fallback registration.');
-    return {
-      status: 'success',
-      message: 'Account successfully registered! (Local Fallback Mode)',
-      user_id: 2,
-    };
+  } catch (err) {
+    console.error('[Auth] Server offline or database connection failed during registration:', err);
+    throw {
+      message: 'Registration server is currently offline or unreachable. Please try again later.',
+      field: 'general',
+    } as AuthError;
   }
 
   const data = await response.json();
@@ -125,6 +174,14 @@ export async function registerUser(payload: {
       field: 'general',
     } as AuthError;
   }
+
+  const assignedId = data?.user_id || Math.floor(Math.random() * 8999) + 1000;
+  await Storage.saveRegisteredAccount({
+    name: payload.name.trim(),
+    email: cleanEmail,
+    password: payload.password,
+    user_id: assignedId,
+  });
 
   return data;
 }

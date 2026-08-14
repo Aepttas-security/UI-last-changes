@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   StyleSheet,
   View,
@@ -18,6 +18,7 @@ import Svg, { Circle, Path, G, Rect } from 'react-native-svg';
 import { useAppTheme } from '../contexts/ThemeContext';
 import { colors } from '../styles/theme';
 import { Icon } from '../components/Icon';
+import { useCallerIntelligence } from '../hooks/useCallerIntelligence';
 
 interface MockCall {
   name: string;
@@ -59,31 +60,21 @@ export const CallerIntelligenceScreen: React.FC<CallerIntelligenceScreenProps> =
   const { colors, mode, toggleTheme } = useAppTheme();
   const styles = React.useMemo(() => getStyles(colors), [colors]);
 
+  const {
+    blockedNumbers,
+    spamCalls,
+    reportHistory,
+    callHistory,
+    autoBlockEnabled,
+    notificationsEnabled,
+    addBlockedNumber,
+    removeBlockedNumber,
+    reportCall,
+    toggleAutoBlock,
+    toggleNotifications,
+  } = useCallerIntelligence();
+
   const [activeTab, setActiveTab] = useState<number>(0);
-
-  // Mock databases
-  const [blockedNumbers, setBlockedNumbers] = useState<BlockedNumber[]>([
-    { number: '+1 (800) 555-0199', name: 'Robo-Loan Inc.', reason: 'Aggressive Spam Dialing', date: '2026-06-02' },
-    { number: '+1 (866) 492-3001', name: 'Imposter IRS Agent', reason: 'Scam Attempt', date: '2026-06-03' },
-    { number: '+1 (510) 902-8811', name: 'Insurance Telemarketer', reason: 'Unwanted Solicitation', date: '2026-06-04' }
-  ]);
-
-  const [spamCalls, setSpamCalls] = useState<SpamCall[]>([
-    { name: 'Suspected Robocall', number: '+1 (202) 555-0143', riskScore: 85, date: '2026-06-04 11:30 AM' },
-    { name: 'Phishing Attempt', number: '+1 (312) 555-0178', riskScore: 92, date: '2026-06-04 09:15 AM' },
-    { name: 'Telemarketing SPAM', number: '+1 (415) 555-0192', riskScore: 75, date: '2026-06-03 04:22 PM' }
-  ]);
-
-  const [reportHistory, setReportHistory] = useState<CallReport[]>([
-    { id: '1', number: '+1 (415) 555-0192', type: 'Telemarketing', description: 'Called 5 times in 2 hours with pre-recorded message', timestamp: '2026-06-03 05:00 PM' }
-  ]);
-
-  const [callHistory, setCallHistory] = useState<MockCall[]>([
-    { name: 'Leo (Family)', number: '+1 (555) 019-2831', riskScore: 2, type: 'Normal', carrier: 'AT&T', location: 'San Jose, CA', frequency: '12 calls/week' },
-    { name: 'Unknown Caller', number: '+1 (415) 555-0192', riskScore: 65, type: 'Suspicious', carrier: 'Unknown', location: 'Unknown', frequency: '2 calls/week' },
-    { name: 'Telemarketing Robocall', number: '+1 (202) 555-0143', riskScore: 85, type: 'Spam', carrier: 'Level 3 Telecom', location: 'Seattle, WA', frequency: '45 calls/week' },
-    { name: 'Delivery Driver', number: '+1 (310) 555-0199', riskScore: 10, type: 'Normal', carrier: 'T-Mobile', location: 'Los Angeles, CA', frequency: '1 call/week' },
-  ]);
 
   const [recentAlerts] = useState<string[]>([
     'Critical Scam Blocked: +1 (866) 492-3001 at 09:42 AM',
@@ -95,48 +86,11 @@ export const CallerIntelligenceScreen: React.FC<CallerIntelligenceScreenProps> =
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResult, setSearchResult] = useState<MockCall | null>(null);
 
-  // Settings
-  const [autoBlockEnabled, setAutoBlockEnabled] = useState(true);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [sensitivity, setSensitivity] = useState(75); // 0.75 in Kotlin
   const [privacyLogging, setPrivacyLogging] = useState(false);
 
   // Simulator
   const [activeSimulatedCall, setActiveSimulatedCall] = useState<MockCall | null>(null);
-  const [realDetectionActive, setRealDetectionActive] = useState(true);
-  const [callState, setCallState] = useState<'ringing' | 'answered'>('ringing');
-  const [callDuration, setCallDuration] = useState(0);
-
-  useEffect(() => {
-    let timeout: any = null;
-    if (activeSimulatedCall && callState === 'ringing') {
-      timeout = setTimeout(() => {
-        setCallState('answered');
-      }, 3500); // Ring for 3.5 seconds before auto-answering
-    }
-    return () => {
-      if (timeout) clearTimeout(timeout);
-    };
-  }, [activeSimulatedCall, callState]);
-
-  useEffect(() => {
-    let interval: any = null;
-    if (callState === 'answered' && activeSimulatedCall) {
-      setCallDuration(0);
-      interval = setInterval(() => {
-        setCallDuration(prev => prev + 1);
-      }, 1000);
-    }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [callState, activeSimulatedCall]);
-
-  const formatDuration = (sec: number) => {
-    const mins = Math.floor(sec / 60);
-    const secs = sec % 60;
-    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-  };
 
   // Popups
   const [showSpamWarning, setShowSpamWarning] = useState(false);
@@ -160,8 +114,13 @@ export const CallerIntelligenceScreen: React.FC<CallerIntelligenceScreenProps> =
 
   const handleSimulateCall = (call: MockCall) => {
     setActiveSimulatedCall(call);
-    setCallState('ringing');
-    setCallDuration(0);
+    if (call.type === 'Spam') {
+      setShowSpamWarning(true);
+    } else if (call.type === 'Scam') {
+      setShowScamAlert(true);
+    } else if (call.type === 'High-Risk') {
+      setShowHighRiskAlert(true);
+    }
   };
 
   const handleSearch = () => {
@@ -222,37 +181,6 @@ export const CallerIntelligenceScreen: React.FC<CallerIntelligenceScreenProps> =
           <Text style={styles.headerTitle}>Caller Intelligence</Text>
           <Text style={styles.headerSubtitle}>Real-Time Call Shield & Spam Analysis Hub</Text>
         </View>
-      </View>
-
-      {/* Real Detection Active Banner */}
-      <View style={[
-        styles.detectionBanner,
-        {
-          borderColor: realDetectionActive ? '#10B981' : '#EF4444',
-          backgroundColor: realDetectionActive ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.08)'
-        }
-      ]}>
-        <View style={styles.detectionBannerLeft}>
-          <View style={[styles.detectionDot, { backgroundColor: realDetectionActive ? '#10B981' : '#EF4444' }]} />
-          <View style={[styles.detectionDot, { backgroundColor: realDetectionActive ? '#EF4444' : '#6B6E85' }]} />
-          <Text style={styles.detectionBannerText}>
-            {realDetectionActive ? 'Real Detection Active' : 'Real Detection Paused'}
-          </Text>
-        </View>
-        <TouchableOpacity
-          style={[
-            styles.detectionBannerBtn,
-            { backgroundColor: realDetectionActive ? '#06b6d4' : '#10B981' }
-          ]}
-          onPress={() => {
-            setRealDetectionActive(!realDetectionActive);
-            showToast(realDetectionActive ? 'Real-time call shield paused' : 'Real-time call shield activated');
-          }}
-        >
-          <Text style={styles.detectionBannerBtnText}>
-            {realDetectionActive ? 'Stop' : 'Start'}
-          </Text>
-        </TouchableOpacity>
       </View>
 
       {/* Tabs Row */}
@@ -503,204 +431,78 @@ export const CallerIntelligenceScreen: React.FC<CallerIntelligenceScreenProps> =
 
             {/* Simulated Active Call Screen */}
             {activeSimulatedCall ? (
-              callState === 'ringing' ? (
-                <View style={styles.simPopupContainer}>
-                  {/* Header blue gradient block */}
-                  <LinearGradient
-                    colors={['#172a5a', '#0d1630']}
-                    style={styles.simPopupHeaderCard}
+              <View style={[styles.callScreenCard, {
+                backgroundColor: activeSimulatedCall.type === 'Spam' || activeSimulatedCall.type === 'Scam' || activeSimulatedCall.type === 'High-Risk' 
+                  ? 'rgba(239, 68, 68, 0.2)' 
+                  : activeSimulatedCall.type === 'Normal' 
+                  ? 'rgba(16, 185, 129, 0.2)' 
+                  : activeSimulatedCall.type === 'Suspicious' 
+                  ? 'rgba(245, 158, 11, 0.2)' 
+                  : '#0b0f19'
+              }]}>
+                <Icon name="phone-in-talk" color={
+                  activeSimulatedCall.type === 'Spam' || activeSimulatedCall.type === 'Scam' || activeSimulatedCall.type === 'High-Risk' 
+                    ? colors.redDanger 
+                    : activeSimulatedCall.type === 'Normal' 
+                    ? colors.greenSuccess 
+                    : activeSimulatedCall.type === 'Suspicious' 
+                    ? colors.orangeWarning 
+                    : colors.purpleAccent
+                } size={48} />
+                <Text style={styles.callScreenName}>{activeSimulatedCall.name}</Text>
+                <Text style={styles.callScreenNumber}>{activeSimulatedCall.number}</Text>
+                <Text style={styles.callScreenCarrier}>
+                  Carrier: {activeSimulatedCall.carrier} | {activeSimulatedCall.location}
+                </Text>
+                <Text
+                  style={[
+                    styles.callScreenScore,
+                    {
+                      color:
+                        activeSimulatedCall.riskScore > 80
+                          ? colors.redDanger
+                          : activeSimulatedCall.riskScore > 50
+                          ? colors.orangeWarning
+                          : colors.greenSuccess,
+                    },
+                  ]}
+                >
+                  Risk Score: {activeSimulatedCall.riskScore}%
+                </Text>
+
+                <View style={styles.callActionsRow}>
+                  <TouchableOpacity
+                    style={[styles.callBtn, { backgroundColor: 'rgba(107, 110, 133, 0.2)' }]}
+                    onPress={() => {
+                      showToast(`Call allowed from ${activeSimulatedCall.name}`);
+                      setActiveSimulatedCall(null);
+                    }}
                   >
-                    {/* Close button in top-right */}
-                    <TouchableOpacity 
-                      style={styles.simPopupCloseBtn}
-                      onPress={() => setActiveSimulatedCall(null)}
-                    >
-                      <Icon name="close" color="rgba(255, 255, 255, 0.4)" size={18} />
-                    </TouchableOpacity>
+                    <Text style={styles.callBtnText}>Allow</Text>
+                  </TouchableOpacity>
 
-                    {/* Circular Avatar */}
-                    <View style={styles.simPopupAvatar}>
-                      <Icon name="arrow-upward" color="#fff" size={28} />
-                    </View>
+                  <TouchableOpacity
+                    style={[styles.callBtn, { backgroundColor: colors.redDanger }]}
+                    onPress={() => {
+                      setCallerToBlockOrReport(activeSimulatedCall);
+                      setShowBlockConfirmation(true);
+                    }}
+                  >
+                    <Text style={styles.callBtnText}>Block</Text>
+                  </TouchableOpacity>
 
-                    {/* Name, Number, Carrier info */}
-                    <Text style={styles.simPopupName}>{activeSimulatedCall.name}</Text>
-                    <Text style={styles.simPopupNumber}>{activeSimulatedCall.number}</Text>
-                    <Text style={styles.simPopupSub}>
-                      {activeSimulatedCall.carrier || 'Unknown'} • {activeSimulatedCall.location || 'Unknown'}
-                    </Text>
-                  </LinearGradient>
-
-                  {/* Score details block */}
-                  <View style={styles.simPopupScoreBlock}>
-                    {/* Left: Risk Score */}
-                    <View style={styles.simPopupScoreLeft}>
-                      <Text style={[
-                        styles.simPopupScoreNum,
-                        {
-                          color:
-                            activeSimulatedCall.riskScore > 75
-                              ? '#EF4444' // Red
-                              : activeSimulatedCall.riskScore > 30
-                              ? '#F59E0B' // Yellow
-                              : '#10B981' // Green
-                        }
-                      ]}>
-                        {activeSimulatedCall.riskScore}
-                      </Text>
-                      <Text style={styles.simPopupScoreLabel}>Risk Score</Text>
-                    </View>
-
-                    {/* Right: Metrics */}
-                    <View style={styles.simPopupScoreRight}>
-                      <Text style={[
-                        styles.simPopupLevelText,
-                        {
-                          color:
-                            activeSimulatedCall.riskScore > 75
-                              ? '#EF4444'
-                              : activeSimulatedCall.riskScore > 30
-                              ? '#F59E0B'
-                              : '#10B981'
-                        }
-                      ]}>
-                        {activeSimulatedCall.riskScore > 75
-                          ? 'High'
-                          : activeSimulatedCall.riskScore > 30
-                          ? 'Medium'
-                          : 'Low'}
-                      </Text>
-                      
-                      <Text style={styles.simPopupMetricText}>
-                        📊 {activeSimulatedCall.riskScore > 50 ? '12' : '0'} spam reports
-                      </Text>
-                      <Text style={styles.simPopupMetricText}>
-                        ⭐ {activeSimulatedCall.riskScore > 75 ? '1' : activeSimulatedCall.riskScore > 30 ? '3' : '5'} reputation
-                      </Text>
-                    </View>
-                  </View>
-
-                  {/* Footer Actions */}
-                  <View style={styles.simPopupActions}>
-                    <TouchableOpacity
-                      style={[styles.simPopupBtn, { backgroundColor: '#3B82F6' }]}
-                      onPress={() => {
-                        setCallState('answered'); // Instantly answer on Profile/View click
-                      }}
-                    >
-                      <Icon name="person" color="#fff" size={16} />
-                      <Text style={styles.simPopupBtnText}>Profile</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={[styles.simPopupBtn, { backgroundColor: '#EF4444' }]}
-                      onPress={() => {
-                        setBlockedNumbers([
-                          ...blockedNumbers,
-                          {
-                            number: activeSimulatedCall.number,
-                            name: activeSimulatedCall.name,
-                            reason: 'User Blocked from simulator popup',
-                            date: 'Today',
-                          }
-                        ]);
-                        showToast('Caller Blocked');
-                        setActiveSimulatedCall(null);
-                      }}
-                    >
-                      <Icon name="block" color="#fff" size={16} />
-                      <Text style={styles.simPopupBtnText}>Block</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={[styles.simPopupBtn, { backgroundColor: '#F59E0B' }]}
-                      onPress={() => {
-                        setCallerToBlockOrReport(activeSimulatedCall);
-                        setReportDesc('');
-                        setShowReportPopup(true);
-                      }}
-                    >
-                      <Icon name="flag" color="#fff" size={16} />
-                      <Text style={styles.simPopupBtnText}>Report</Text>
-                    </TouchableOpacity>
-                  </View>
+                  <TouchableOpacity
+                    style={[styles.callBtn, { backgroundColor: colors.cyanAccent }]}
+                    onPress={() => {
+                      setCallerToBlockOrReport(activeSimulatedCall);
+                      setReportDesc('');
+                      setShowReportPopup(true);
+                    }}
+                  >
+                    <Text style={[styles.callBtnText, { color: '#000' }]}>Report</Text>
+                  </TouchableOpacity>
                 </View>
-              ) : (
-                /* CALL SUMMARY STATE (Mockup 2) */
-                <View style={styles.summaryCardContainer}>
-                  {/* Header: Call Summary */}
-                  <View style={styles.summaryHeader}>
-                    <Text style={styles.summaryHeaderTitle}>Call Summary</Text>
-                    <TouchableOpacity 
-                      style={styles.summaryCloseBtn}
-                      onPress={() => setActiveSimulatedCall(null)}
-                    >
-                      <Icon name="close" color="#FFFFFF" size={20} />
-                    </TouchableOpacity>
-                  </View>
-
-                  {/* Body Content */}
-                  <View style={styles.summaryBody}>
-                    <View style={styles.summaryStatusRow}>
-                      <Icon name="phone-in-talk" color="rgba(255,255,255,0.4)" size={20} />
-                      <Text style={styles.summaryStatusText}>ANSWERED</Text>
-                    </View>
-
-                    <Text style={styles.summaryNumber}>{activeSimulatedCall.number}</Text>
-                    <Text style={styles.summaryName}>{activeSimulatedCall.name || 'Unknown'}</Text>
-                    
-                    <View style={styles.summaryTimeRow}>
-                      <Icon name="schedule" color="rgba(255,255,255,0.4)" size={16} />
-                      <Text style={styles.summaryTimeText}>{formatDuration(callDuration)}</Text>
-                    </View>
-                  </View>
-
-                  {/* Footer Actions */}
-                  <View style={styles.summaryActions}>
-                    <TouchableOpacity
-                      style={[styles.summaryBtn, { backgroundColor: '#3B82F6' }]}
-                      onPress={() => {
-                        showToast(`Viewing profile of ${activeSimulatedCall.name}`);
-                      }}
-                    >
-                      <Icon name="person" color="#fff" size={16} />
-                      <Text style={styles.summaryBtnText}>Profile</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={[styles.summaryBtn, { backgroundColor: '#EF4444' }]}
-                      onPress={() => {
-                        setBlockedNumbers([
-                          ...blockedNumbers,
-                          {
-                            number: activeSimulatedCall.number,
-                            name: activeSimulatedCall.name,
-                            reason: 'User Blocked from Call Summary',
-                            date: 'Today',
-                          }
-                        ]);
-                        showToast('Caller Blocked');
-                        setActiveSimulatedCall(null);
-                      }}
-                    >
-                      <Icon name="block" color="#fff" size={16} />
-                      <Text style={styles.summaryBtnText}>Block</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={[styles.summaryBtn, { backgroundColor: '#F59E0B' }]}
-                      onPress={() => {
-                        setCallerToBlockOrReport(activeSimulatedCall);
-                        setReportDesc('');
-                        setShowReportPopup(true);
-                      }}
-                    >
-                      <Icon name="flag" color="#fff" size={16} />
-                      <Text style={styles.summaryBtnText}>Report</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              )
+              </View>
             ) : (
               <View style={styles.callScreenCardEmpty}>
                 <Icon name="phone-in-talk" color="#6B6E85" size={48} />
@@ -817,11 +619,7 @@ export const CallerIntelligenceScreen: React.FC<CallerIntelligenceScreenProps> =
                 <TouchableOpacity
                   style={styles.unblockBtn}
                   onPress={() => {
-                    setBlockedNumbers([
-                      ...blockedNumbers,
-                      { number: spam.number, name: spam.name, reason: 'Auto-Blocked from Spam List', date: 'Today' }
-                    ]);
-                    setSpamCalls(spamCalls.filter((_, i) => i !== idx));
+                    addBlockedNumber(spam.number, spam.name, 'Auto-Blocked from Spam List');
                     showToast(`Blocked: ${spam.number}`);
                   }}
                 >
@@ -841,7 +639,7 @@ export const CallerIntelligenceScreen: React.FC<CallerIntelligenceScreenProps> =
                 <TouchableOpacity
                   style={[styles.unblockBtn, { borderColor: colors.greenSuccess }]}
                   onPress={() => {
-                    setBlockedNumbers(blockedNumbers.filter((_, i) => i !== idx));
+                    removeBlockedNumber(blocked.number);
                     showToast(`Unblocked: ${blocked.number}`);
                   }}
                 >
@@ -881,7 +679,7 @@ export const CallerIntelligenceScreen: React.FC<CallerIntelligenceScreenProps> =
                   <Text style={styles.settingTitle}>Auto-Block High-Risk Calls</Text>
                   <Text style={styles.settingSub}>Silently terminate known fraud senders</Text>
                 </View>
-                <Switch value={autoBlockEnabled} onValueChange={setAutoBlockEnabled} trackColor={{ true: colors.purpleAccent }} />
+                <Switch value={autoBlockEnabled} onValueChange={toggleAutoBlock} trackColor={{ true: colors.purpleAccent }} />
               </View>
 
               <View style={[styles.switchRow, { marginTop: 20 }]}>
@@ -889,7 +687,7 @@ export const CallerIntelligenceScreen: React.FC<CallerIntelligenceScreenProps> =
                   <Text style={styles.settingTitle}>Spam Alert Notifications</Text>
                   <Text style={styles.settingSub}>Display floating warning banners for risk callers</Text>
                 </View>
-                <Switch value={notificationsEnabled} onValueChange={setNotificationsEnabled} trackColor={{ true: colors.purpleAccent }} />
+                <Switch value={notificationsEnabled} onValueChange={toggleNotifications} trackColor={{ true: colors.purpleAccent }} />
               </View>
 
               <View style={styles.cardDivider} />
@@ -954,10 +752,7 @@ export const CallerIntelligenceScreen: React.FC<CallerIntelligenceScreenProps> =
                   <TouchableOpacity
                     style={[styles.popupBtn, { backgroundColor: colors.redDanger }]}
                     onPress={() => {
-                      setBlockedNumbers([
-                        ...blockedNumbers,
-                        { number: activeSimulatedCall.number, name: activeSimulatedCall.name, reason: 'Spam Network Warning', date: 'Today' }
-                      ]);
+                      addBlockedNumber(activeSimulatedCall.number, activeSimulatedCall.name, 'Spam Network Warning');
                       showToast('Caller Blocked');
                       setActiveSimulatedCall(null);
                       setShowSpamWarning(false);
@@ -999,10 +794,7 @@ export const CallerIntelligenceScreen: React.FC<CallerIntelligenceScreenProps> =
                   <TouchableOpacity
                     style={[styles.popupBtn, { backgroundColor: colors.redDanger }]}
                     onPress={() => {
-                      setBlockedNumbers([
-                        ...blockedNumbers,
-                        { number: activeSimulatedCall.number, name: activeSimulatedCall.name, reason: 'Scam Warning Block', date: 'Today' }
-                      ]);
+                      addBlockedNumber(activeSimulatedCall.number, activeSimulatedCall.name, 'Scam Warning Block');
                       showToast('Scam Number Terminated & Blocked');
                       setActiveSimulatedCall(null);
                       setShowScamAlert(false);
@@ -1037,10 +829,7 @@ export const CallerIntelligenceScreen: React.FC<CallerIntelligenceScreenProps> =
                 <TouchableOpacity
                   style={[styles.primaryBtn, { backgroundColor: '#ff1111', height: 46 }]}
                   onPress={() => {
-                    setBlockedNumbers([
-                      ...blockedNumbers,
-                      { number: activeSimulatedCall.number, name: activeSimulatedCall.name, reason: 'Critical AI High-Risk Auto-Block', date: 'Today' }
-                    ]);
+                    addBlockedNumber(activeSimulatedCall.number, activeSimulatedCall.name, 'Critical AI High-Risk Auto-Block');
                     showToast('Immediate Block Executed');
                     setActiveSimulatedCall(null);
                     setShowHighRiskAlert(false);
@@ -1077,10 +866,7 @@ export const CallerIntelligenceScreen: React.FC<CallerIntelligenceScreenProps> =
                   <TouchableOpacity
                     style={[styles.popupBtn, { backgroundColor: colors.redDanger }]}
                     onPress={() => {
-                      setBlockedNumbers([
-                        ...blockedNumbers,
-                        { number: callerToBlockOrReport.number, name: callerToBlockOrReport.name, reason: 'User Block', date: 'Today' }
-                      ]);
+                      addBlockedNumber(callerToBlockOrReport.number, callerToBlockOrReport.name, 'User Block');
                       showToast('Caller Blocked');
                       setActiveSimulatedCall(null);
                       setShowBlockConfirmation(false);
@@ -1133,16 +919,7 @@ export const CallerIntelligenceScreen: React.FC<CallerIntelligenceScreenProps> =
                   <TouchableOpacity
                     style={[styles.popupBtn, { backgroundColor: colors.cyanAccent }]}
                     onPress={() => {
-                      setReportHistory([
-                        ...reportHistory,
-                        {
-                          id: Math.random().toString(),
-                          number: callerToBlockOrReport.number,
-                          type: reportType,
-                          description: reportDesc || 'No description provided.',
-                          timestamp: 'Today 15:00'
-                        }
-                      ]);
+                      reportCall(callerToBlockOrReport.number, reportType, reportDesc || 'No description provided.');
                       showToast('Report Submitted. Thank you for securing the network!');
                       setShowReportPopup(false);
                     }}
@@ -1921,233 +1698,5 @@ const getStyles = (colors: any) => StyleSheet.create({
   adSkipBtnText: {
     fontSize: 11,
     color: '#6b6e85',
-  },
-  simPopupContainer: {
-    width: '100%',
-    borderRadius: 20,
-    backgroundColor: '#1E1B3D',
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    marginTop: 10,
-  },
-  simPopupHeaderCard: {
-    width: '100%',
-    padding: 24,
-    alignItems: 'center',
-    position: 'relative',
-  },
-  simPopupCloseBtn: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  simPopupAvatar: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: '#3B82F6',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#3B82F6',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  simPopupName: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginTop: 12,
-  },
-  simPopupNumber: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.6)',
-    marginTop: 4,
-  },
-  simPopupSub: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.4)',
-    marginTop: 2,
-  },
-  simPopupScoreBlock: {
-    flexDirection: 'row',
-    backgroundColor: '#161330',
-    padding: 18,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
-  },
-  simPopupScoreLeft: {
-    flex: 0.4,
-    alignItems: 'center',
-    borderRightWidth: 1,
-    borderRightColor: 'rgba(255, 255, 255, 0.1)',
-    justifyContent: 'center',
-  },
-  simPopupScoreNum: {
-    fontSize: 32,
-    fontWeight: 'bold',
-  },
-  simPopupScoreLabel: {
-    fontSize: 10,
-    color: 'rgba(255, 255, 255, 0.4)',
-    marginTop: 4,
-  },
-  simPopupScoreRight: {
-    flex: 0.6,
-    paddingLeft: 20,
-    justifyContent: 'center',
-  },
-  simPopupLevelText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 6,
-  },
-  simPopupMetricText: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.6)',
-    marginTop: 4,
-  },
-  simPopupActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    padding: 16,
-    backgroundColor: '#0F0C24',
-  },
-  simPopupBtn: {
-    flex: 0.31,
-    height: 42,
-    borderRadius: 21,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  simPopupBtnText: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-    fontSize: 13,
-    marginLeft: 6,
-  },
-  summaryCardContainer: {
-    width: '100%',
-    borderRadius: 20,
-    backgroundColor: '#1E1B3D',
-    padding: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    marginTop: 10,
-  },
-  summaryHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 28,
-  },
-  summaryHeaderTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  summaryCloseBtn: {
-    padding: 4,
-  },
-  summaryBody: {
-    alignItems: 'center',
-    marginBottom: 28,
-  },
-  summaryStatusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  summaryStatusText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: 'rgba(255, 255, 255, 0.5)',
-    marginLeft: 8,
-    letterSpacing: 1,
-  },
-  summaryNumber: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 8,
-  },
-  summaryName: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.5)',
-    marginBottom: 12,
-  },
-  summaryTimeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  summaryTimeText: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.4)',
-    marginLeft: 6,
-  },
-  summaryActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-  },
-  summaryBtn: {
-    flex: 0.31,
-    height: 42,
-    borderRadius: 21,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  summaryBtnText: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-    fontSize: 13,
-    marginLeft: 6,
-  },
-  detectionBanner: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    marginHorizontal: 16,
-    marginBottom: 12,
-  },
-  detectionBannerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  detectionDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 6,
-  },
-  detectionBannerText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: 'bold',
-    marginLeft: 4,
-  },
-  detectionBannerBtn: {
-    borderRadius: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-  },
-  detectionBannerBtnText: {
-    color: '#000000',
-    fontWeight: 'bold',
-    fontSize: 12,
   },
 });

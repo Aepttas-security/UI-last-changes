@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Platform } from 'react-native';
 import { ScannerRepository, DashboardRepository, DashboardMetrics } from '../data/repository';
 import { ApkScanner } from '../scanner/ApkScanner';
+import { Storage } from '../utils/storage';
 
 export interface LocalScanResult {
   id: number;
@@ -44,9 +45,6 @@ export function useApkScanner() {
   const [quarantinedFiles, setQuarantinedFiles] = useState<any[]>([]);
   const [historyLogs, setHistoryLogs] = useState<any[]>([]);
   const [activeAlert, setActiveAlert] = useState<any | null>(null);
-  const [autoScanState, setAutoScanState] = useState<{ lastScanTimestamp: string | null }>({
-    lastScanTimestamp: null,
-  });
 
   // Local in-memory stores (React refs so they persist across renders without causing extra renders)
   const localScansRef = useRef<LocalScanResult[]>([]);
@@ -61,10 +59,9 @@ export function useApkScanner() {
    */
   const checkBackend = useCallback(async (): Promise<boolean> => {
     try {
-      const BASE_URL = 'http://192.168.39.211:8001';
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 3000);
-      const res = await fetch(`${BASE_URL}/api/dashboard`, { signal: controller.signal });
+      const res = await fetch(`${ScannerRepository ? (ScannerRepository as any).getBaseUrl?.() || require('../config/apiConfig').getApiBaseUrl() : 'http://127.0.0.1:8000'}/api/dashboard`, { signal: controller.signal });
       clearTimeout(timeout);
       const available = res.ok;
       setBackendAvailable(available);
@@ -75,23 +72,25 @@ export function useApkScanner() {
     }
   }, []);
 
+
   /**
-   * Push local store state into React state so the UI re-renders
+   * Push local store state into React state so the UI re-renders and save to Storage DB
    */
-  const syncLocalToState = useCallback(() => {
+  const syncLocalToState = useCallback(async () => {
     const scansLocal = localScansRef.current;
     const quarantineLocal = localQuarantineRef.current;
     const historyLocal = localHistoryRef.current;
 
     const threats = scansLocal.filter(s => s.status !== 'Safe').length;
-    setDashboardMetrics({
+    const metrics = {
       total_scanned: scansLocal.length + historyLocal.length,
       threats_detected: threats,
       quarantined_files: quarantineLocal.length,
       device_security_score: scansLocal.length === 0 && quarantineLocal.length === 0
         ? 100
         : Math.max(10, 100 - quarantineLocal.length * 15 - threats * 10),
-    });
+    };
+    setDashboardMetrics(metrics);
     setScans([...scansLocal]);
     setQuarantinedFiles([...quarantineLocal]);
     setHistoryLogs([...historyLocal]);
@@ -99,12 +98,9 @@ export function useApkScanner() {
     const maliciousAlert = scansLocal.find(s => s.status === 'Malicious');
     setActiveAlert(maliciousAlert ?? null);
 
-    const latestTime = historyLocal.length > 0
-      ? historyLocal[0].timestamp
-      : scansLocal.length > 0
-      ? scansLocal[0].timestamp
-      : null;
-    setAutoScanState({ lastScanTimestamp: latestTime });
+    // Save to persistent Storage DB
+    await Storage.setScanLogs(scansLocal);
+    await Storage.setQuarantineItems(quarantineLocal);
   }, []);
 
   /**
@@ -123,49 +119,37 @@ export function useApkScanner() {
           DashboardRepository.getActiveAlerts(),
         ]);
 
-        // Merge local cache (new scans/actions) at the front, rendering them first
-        const mergedScans = [
-          ...localScansRef.current,
-          ...allScans.filter((s: any) => !localScansRef.current.some(ls => ls.id === s.id))
-        ];
-        const mergedQuarantine = [
-          ...localQuarantineRef.current,
-          ...allQuarantine.filter((q: any) => !localQuarantineRef.current.some(lq => lq.id === q.id))
-        ];
-        const mergedHistory = [
-          ...localHistoryRef.current,
-          ...allHistory.filter((h: any) => !localHistoryRef.current.some(lh => lh.id === h.id))
-        ];
-
-        setDashboardMetrics({
-          total_scanned: mergedScans.length + mergedHistory.length,
-          threats_detected: mergedScans.filter(s => s.status !== 'Safe').length,
-          quarantined_files: mergedQuarantine.length,
-          device_security_score: metrics.device_security_score,
-        });
-        setScans(mergedScans);
-        setQuarantinedFiles(mergedQuarantine);
-        setHistoryLogs(mergedHistory);
+        setDashboardMetrics(metrics);
+        setScans(allScans);
+        setQuarantinedFiles(allQuarantine);
+        setHistoryLogs(allHistory);
         setActiveAlert(alerts.length > 0 ? alerts[0] : null);
-
-        const latestTime = mergedHistory.length > 0
-          ? mergedHistory[0].timestamp
-          : mergedScans.length > 0
-          ? mergedScans[0].timestamp
-          : null;
-        setAutoScanState({ lastScanTimestamp: latestTime });
         return;
       } catch {
         // Fall through to local
       }
     }
 
-    // Use local in-memory store
+    // Load from local Storage DB if ref is empty
+    if (localScansRef.current.length === 0) {
+      const storedScans = await Storage.getScanLogs();
+      if (storedScans) localScansRef.current = storedScans;
+      const storedQuarantine = await Storage.getQuarantineItems();
+      if (storedQuarantine) localQuarantineRef.current = storedQuarantine;
+    }
+
+    // Use local store
     syncLocalToState();
   }, [backendAvailable, checkBackend, syncLocalToState]);
 
   useEffect(() => {
-    checkBackend().then(() => syncLocalToState());
+    checkBackend().then(() => refreshData());
+    const unsubscribe = Storage.subscribe('*', () => {
+      refreshData();
+    });
+    return () => {
+      unsubscribe();
+    };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   /**
@@ -412,7 +396,6 @@ export function useApkScanner() {
     quarantinedFiles,
     historyLogs,
     activeAlert,
-    autoScanState,
     backendAvailable,
     scanFile,
     quarantineFile,
