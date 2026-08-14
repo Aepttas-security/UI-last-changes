@@ -109,7 +109,7 @@ function App() {
       case 'Login':
         return (
           <LoginScreen
-            onSignInSuccess={(userEmail) => {
+            onSignInSuccess={(isLinked, userEmail) => {
               setSignUpSuccessMessage('');
               if (userEmail === 'admin@gmail.com') {
                 setCurrentScreen('AdminLogs');

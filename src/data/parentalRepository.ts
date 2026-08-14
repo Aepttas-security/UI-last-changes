@@ -4,7 +4,7 @@ import { Storage } from '../utils/storage';
 
 const getBaseUrl = () => getApiBaseUrl();
 
-const originalFetch = global.fetch;
+const originalFetch = globalThis.fetch;
 const fetch = async (url: string | Request, options: any = {}) => {
   if (options && options.signal) {
     return originalFetch(url, options);

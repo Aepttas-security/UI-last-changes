@@ -11,7 +11,7 @@ export interface DashboardMetrics {
 const getBaseUrl = () => getApiBaseUrl();
 const getGeoUrl = () => getGeoBaseUrl();
 
-const originalFetch = global.fetch;
+const originalFetch = globalThis.fetch;
 const fetch = async (url: string | Request, options: any = {}) => {
   if (options && options.signal) {
     return originalFetch(url, options);
