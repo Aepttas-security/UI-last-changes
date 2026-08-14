@@ -16,6 +16,7 @@ import { ChildLinkScreen } from './src/screens/ChildLinkScreen';
 import { ChildModeScreen } from './src/screens/ChildModeScreen';
 import { VulnerabilityDetectionScreen } from './src/screens/VulnerabilityDetectionScreen';
 import { ChildDashboardScreen } from './src/screens/ChildDashboardScreen';
+import { AdminLogsScreen } from './src/screens/AdminLogsScreen';
 
 type ScreenName =
   | 'Login'
@@ -28,7 +29,8 @@ type ScreenName =
   | 'ChildLink'
   | 'ChildMode'
   | 'VulnerabilityDetection'
-  | 'ChildDashboard';
+  | 'ChildDashboard'
+  | 'AdminLogs';
 
 import { useAppTheme } from './src/contexts/ThemeContext';
 
@@ -59,9 +61,13 @@ function App() {
       case 'Login':
         return (
           <LoginScreen
-            onSignInSuccess={() => {
+            onSignInSuccess={(userEmail) => {
               setSignUpSuccessMessage('');
-              setCurrentScreen('Dashboard');
+              if (userEmail === 'admin@gmail.com') {
+                setCurrentScreen('AdminLogs');
+              } else {
+                setCurrentScreen('Dashboard');
+              }
             }}
             onSetUpChildDevice={() => setCurrentScreen('ChildLink')}
             onGoToSignUp={() => {
@@ -118,10 +124,18 @@ function App() {
         );
       case 'ChildMode':
         return <ChildModeScreen onUnlink={() => setCurrentScreen('Login')} />;
+      case 'AdminLogs':
+        return <AdminLogsScreen onBack={() => setCurrentScreen('Login')} />;
       default:
         return (
           <LoginScreen
-            onSignInSuccess={() => setCurrentScreen('Dashboard')}
+            onSignInSuccess={(userEmail) => {
+              if (userEmail === 'admin@gmail.com') {
+                setCurrentScreen('AdminLogs');
+              } else {
+                setCurrentScreen('Dashboard');
+              }
+            }}
             onSetUpChildDevice={() => setCurrentScreen('ChildLink')}
             onGoToSignUp={() => setCurrentScreen('SignUp')}
           />

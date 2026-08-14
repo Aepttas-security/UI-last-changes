@@ -18,7 +18,7 @@ import { Icon } from '../components/Icon';
 import { loginUser, AuthError } from '../data/authRepository';
 
 interface LoginScreenProps {
-  onSignInSuccess: () => void;
+  onSignInSuccess: (email?: string) => void;
   onSetUpChildDevice: () => void;
   onGoToSignUp: () => void;
   signUpSuccessMessage?: string; // shown when returning from SignUp
@@ -54,13 +54,19 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
       return;
     }
 
+    // Admin Credentials constraint check
+    if (email.trim().toLowerCase() === 'admin@gmail.com' && password !== 'Admin123') {
+      setErrorMessage('Invalid admin password');
+      return;
+    }
+
     setErrorMessage('');
     setIsLoading(true);
 
     try {
       // Completely disconnected database and authentication: allow immediate login
       console.log('[Auth] Database and authentication bypassed. Login allowed for email:', email);
-      onSignInSuccess();
+      onSignInSuccess(email.trim().toLowerCase());
     } catch (err) {
       setErrorMessage('Login failed.');
     } finally {
